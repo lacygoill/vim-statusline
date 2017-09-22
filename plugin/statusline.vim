@@ -47,19 +47,18 @@ fu! My_status_line() abort "{{{2
     return ' %1*%t%* '
        \.  '%2*%{&modified ? "[+]" : ""}%*'
        \.  '%-5r%-10w'
-       \.  '%{exists("*Stl_list_position") ? Stl_list_position() : ""}'
+       \.  '%{List_position_status()}'
        \.  '%='
        \.  '%-5{!empty(&ve) ? "[ve]" : ""}'
-       \.  '%-7{exists("*CapsLock_stl") ? CapsLock_stl() : ""}'
+       \.  '%-7{exists("*capslock#status") ? capslock#status() : ""}'
        \.  '%-5{exists("*session#status") ? session#status() : ""}'
        \.  '%4.5l G'
        \.  '%4v |'
        \.  '%4p%% '
 endfu
 
-" NOTE:
-" We want to have a modified flag:
-"
+" About the modified flag: {{{3
+
 "         %m    ✘
 "
 " Can't use this because we want the flag to be colored by HG `User1`.
@@ -75,7 +74,9 @@ endfu
 " The solution is to use the `%{expr}` syntax, because the expression inside
 " the curly braces is evaluated in the context of the window to which the statusline
 " belongs.
-"
+
+" About the other flags: "{{{3
+
 "     ┌────────────────────────────────┬─────────────────────────────────────────────────────┐
 "     │ %1*%t%*                        │ switch to HG User1, add filename, reset HG          │
 "     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
@@ -94,6 +95,8 @@ endfu
 "     │ %p%%                           │ percentage of read lines                            │
 "     └────────────────────────────────┴─────────────────────────────────────────────────────┘
 
+" About the `-{minwid}` field: {{{3
+
 " When you want an item to be followed by a space, but only if it's not empty,
 " write this:
 "                 %-42item
@@ -101,7 +104,8 @@ endfu
 " … the length of the item being 41. The width of the field will be one character
 " longer than the item, so a space will be added; and the left-justifcation will
 " cause it to appear at the end (instead of the beginning).
-fu! Stl_list_position() abort "{{{2
+
+fu! List_position_status() abort "{{{2
     if !get(g:, 'my_stl_list_position', 0)
         return ''
     endif
@@ -178,5 +182,3 @@ endfu
 set laststatus=2
 
 set statusline=%!My_status_line()
-
-
