@@ -25,6 +25,10 @@ fu! s:is_in_list_and_current() abort "{{{2
     \                       [ s:cur_buf,         s:cur_line       ]
     \                ==     [ s:cur_entry.bufnr, s:cur_entry.lnum ]
     \                &&     s:cur_entry.col == 0
+    \                ||
+    \                       [ s:cur_buf,        ]
+    \                ==     [ s:cur_entry.bufnr ]
+    \                &&     [ s:cur_entry.lnum, s:cur_entry.col ] == [ 0, 0]
     \               },
     \
     \        'arg': { -> s:bufname ==# argv(s:argidx) }
