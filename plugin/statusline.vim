@@ -185,11 +185,6 @@ fu! List_position_status() abort "{{{2
     return '[]'
 endfu
 
-" NOTE:
-" You may see the indicator `[ł]` in the statusline of a window where apparently
-" there should be no location list. But remember, a window created with `:split`
-" or `:tabnew` INHERITS the location list of its predecessor.
-
 " Options {{{1
 
 " always enable the status line
