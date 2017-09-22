@@ -26,8 +26,8 @@ fu! s:is_in_list_and_current() abort "{{{2
     \                ==     [ s:cur_entry.bufnr, s:cur_entry.lnum ]
     \                &&     s:cur_entry.col == 0
     \                ||
-    \                       [ s:cur_buf,        ]
-    \                ==     [ s:cur_entry.bufnr ]
+    \                       s:cur_buf
+    \                ==     s:cur_entry.bufnr
     \                &&     [ s:cur_entry.lnum, s:cur_entry.col ] == [ 0, 0]
     \               },
     \
@@ -163,8 +163,8 @@ fu! List_position_status() abort "{{{2
             continue
         endif
 
-        let info = { 'qfl':  getqflist(   { 'idx': 1,         'size': 1      }),
-                 \   'arg':               { 'idx':  argidx(), 'size': argc() },
+        let info = { 'qfl':  getqflist({ 'idx': 1,         'size': 1      }),
+                 \   'arg':            { 'idx':  argidx(), 'size': argc() },
                  \ }[s:list.name]
 
         if len(info) < 2 | continue | endif
