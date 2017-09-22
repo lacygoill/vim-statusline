@@ -75,7 +75,7 @@ endfu
 " the curly braces is evaluated in the context of the window to which the statusline
 " belongs.
 
-" About the other flags: "{{{3
+" About the other items: "{{{3
 
 "     ┌────────────────────────────────┬─────────────────────────────────────────────────────┐
 "     │ %1*%t%*                        │ switch to HG User1, add filename, reset HG          │
@@ -90,7 +90,7 @@ endfu
 "     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
 "     │ %l                             │ line nr                                             │
 "     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"     │ %v                             │ virtual column -1nr                                 │
+"     │ %v                             │ virtual column nr                                   │
 "     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
 "     │ %p%%                           │ percentage of read lines                            │
 "     └────────────────────────────────┴─────────────────────────────────────────────────────┘
@@ -104,6 +104,18 @@ endfu
 " … the length of the item being 41. The width of the field will be one character
 " longer than the item, so a space will be added; and the left-justifcation will
 " cause it to appear at the end (instead of the beginning).
+
+" About the `.{maxwid}` field: {{{3
+
+" To prevent an item from taking too much space, you can limit its length like so:
+"
+"               %.42item
+"
+" Truncation occurs with:
+"
+"         • a '<' on the left for text items
+"         • a '>' on the right for numeric items (only `maxwid - 2` digits are kept)
+"           the number after '>' stands for how many digits are missing
 
 fu! List_position_status() abort "{{{2
     if !get(g:, 'my_stl_list_position', 0)
