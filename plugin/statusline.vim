@@ -28,7 +28,7 @@ fu! s:is_in_list_and_current() abort "{{{2
     \               },
     \
     \        'arg': { -> s:bufname ==# argv(s:argidx) }
-    \      }[ s:list.name ==# 'll' ? 'qfl' : s:list.name ]
+    \      }[ s:list.name ]
 endfu
 
 fu! s:is_in_list_but_not_current() abort "{{{2
@@ -40,7 +40,7 @@ fu! s:is_in_list_but_not_current() abort "{{{2
     \               },
     \
     \        'arg': { -> count(map(range(s:argc), 'argv(v:val)'), s:bufname) }
-    \      }[ s:list.name ==# 'll' ? 'qfl' : s:list.name ]
+    \      }[ s:list.name ]
 endfu
 
 fu! My_status_line() abort "{{{2
@@ -151,17 +151,15 @@ fu! List_position_status() abort "{{{2
     let [ s:cur_col, s:cur_line, s:cur_buf ] = [ col('.'),     line('.'), bufnr('%') ]
     let [ s:bufname, s:argidx, s:argc ]      = [ bufname('%'), argidx(),  argc() ]
 
-    let s:lists = [ {'name': 'qfl', 'data': getqflist()},
-                \   {'name': 'll',  'data': getloclist(0)},
-                \   {'name': 'arg', 'data': map(range(argc()), 'argv(v:val)')} ]
+    let lists = [ {'name': 'qfl', 'data': getqflist()},
+              \   {'name': 'arg', 'data': map(range(argc()), 'argv(v:val)')} ]
 
-    for s:list in s:lists
+    for s:list in lists
         if empty(s:list.data)
             continue
         endif
 
         let info = { 'qfl':  getqflist(   { 'idx': 1,         'size': 1      }),
-                 \   'll' : getloclist(0, { 'idx': 1,         'size': 1      }),
                  \   'arg':               { 'idx':  argidx(), 'size': argc() },
                  \ }[s:list.name]
 
@@ -171,11 +169,11 @@ fu! List_position_status() abort "{{{2
         let s:cur_entry   = s:list.data[idx-1]
 
         return ( s:is_in_list_and_current()()
-            \?      {'qfl': 'C', 'll': 'L', 'arg': 'A'}[s:list.name]
+            \?      {'qfl': 'C', 'arg': 'A'}[s:list.name]
             \
             \:   s:is_in_list_but_not_current()()
-            \?      {'qfl': 'c', 'll': 'l', 'arg': 'a'}[s:list.name]
-            \:      {'qfl': 'ȼ', 'll': 'ł', 'arg': 'ā'}[s:list.name]
+            \?      {'qfl': 'c', 'arg': 'a'}[s:list.name]
+            \:      {'qfl': 'ȼ', 'arg': 'ā'}[s:list.name]
             \ )
             \ .'['.(idx + (s:list.name ==# 'arg' ? 1 : 0)).'/'.size.']'
     endfor
