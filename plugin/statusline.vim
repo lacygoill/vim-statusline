@@ -44,14 +44,14 @@ fu! s:is_in_list_but_not_current() abort "{{{2
 endfu
 
 fu! My_status_line() abort "{{{2
-    return ' %1*%t%* '
-       \.  '%2*%{&modified ? "[+]" : ""}%*'
+    return '%{List_position_status()}'
+       \.  ' %1*%t%* '
        \.  '%-5r%-10w'
-       \.  '%{List_position_status()}'
+       \.  '%2*%{&modified ? "[+]" : ""}%*'
        \.  '%='
        \.  '%-5{!empty(&ve) ? "[ve]" : ""}'
        \.  '%-7{exists("*capslock#status") ? capslock#status() : ""}'
-       \.  '%-5{exists("*session#status") ? session#status() : ""}'
+       \.  '%-5{exists("*session#status")  ? session#status()  : ""}'
        \.  '%4.5l G'
        \.  '%4v |'
        \.  '%4p%% '
