@@ -14,6 +14,10 @@
 "           alignment of a section.  Must be followed by %) somewhere.
 "     ) -   End of item group.  No width fields allowed.
 
+" TODO:
+" If possible, make the `%{List_position_status()}` item local to the current window.
+" For inspiration, study `vim-flagship` first.
+
 " Functions {{{1
 fu! s:is_in_list_and_current() abort "{{{2
     return
