@@ -60,7 +60,7 @@ fu! My_status_line() abort "{{{2
        \.  '%-5{!empty(&ve) ? "[ve]" : ""}'
        \.  '%-7{exists("*capslock#status") ? capslock#status() : ""}'
        \.  '%-5{exists("*session#status")  ? session#status()  : ""}'
-       \.  '%-5(%.5l,%.3v%)'
+       \.  '%-8(%.5l,%.3v%)'
        \.  '%4p%% '
 endfu
 
