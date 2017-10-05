@@ -15,7 +15,7 @@
 "     ) -   End of item group.  No width fields allowed.
 
 " TODO:
-" If possible, make the `%{List_position_status()}` item local to the current window.
+" If possible, make the `%{statusline#list_position()}` item local to the current window.
 " For inspiration, study `vim-flagship` first.
 
 " Functions {{{1
@@ -51,11 +51,75 @@ fu! s:is_in_list_but_not_current() abort "{{{2
     \      }[ s:list.name ]
 endfu
 
-fu! My_status_line() abort "{{{2
-    return '%{List_position_status()}'
-       \.  ' %1*%t%* '
+fu! statusline#list_position() abort "{{{2
+    if !get(g:, 'my_stl_list_position', 0)
+        return ''
+    endif
+
+    " FIXME: At least ONE of the variables used by a lambda must be created BEFORE{{{
+    " the lambda. Is it documented? I can't find anything in `:h closure`,
+    " nor in `:h :func-closure` (nor on Vim's repo: `lambda E121`).
+    "
+    " So, here, we could move 2 out of the 3 following assignments after the lambda,
+    " but at least 1 should stay before. I prefer to write the 3 before.
+    "
+    " Reproduce:
+    "
+    "         fu! Func()
+    "             let Test = { -> foo + bar == 3 }
+    "             let foo  = 1
+    "             let bar  = 2
+    "             return Test()
+    "         endfu
+    "         echo Func()
+    "         → 1    ✔
+    "
+    "         fu! Func()
+    "             let foo  = 1
+    "             let Test = { -> foo + bar == 3 }
+    "             let bar  = 2
+    "             return Test()
+    "         endfu
+    "         echo Func()
+    "         → E121    ✘}}}
+    let [ s:cur_col, s:cur_line, s:cur_buf ] = [ col('.'),     line('.'), bufnr('%') ]
+    let [ s:bufname, s:argidx, s:argc ]      = [ bufname('%'), argidx(),  argc() ]
+
+    let lists = [ {'name': 'qfl', 'data': getqflist()},
+              \   {'name': 'arg', 'data': map(range(argc()), 'argv(v:val)')} ]
+
+    for s:list in lists
+        if empty(s:list.data)
+            continue
+        endif
+
+        let info = { 'qfl':  getqflist({ 'idx': 1,         'size': 1      }),
+                 \   'arg':            { 'idx':  argidx(), 'size': argc() },
+                 \ }[s:list.name]
+
+        if len(info) < 2 | continue | endif
+
+        let [ idx, size ] = [ info.idx, info.size ]
+        let s:cur_entry   = s:list.data[idx-1]
+
+        return ( s:is_in_list_and_current()()
+            \?      {'qfl': 'C', 'arg': 'A'}[s:list.name]
+            \
+            \:   s:is_in_list_but_not_current()()
+            \?      {'qfl': 'c', 'arg': 'a'}[s:list.name]
+            \:      {'qfl': 'ȼ', 'arg': 'ā'}[s:list.name]
+            \ )
+            \ .'['.(idx + (s:list.name ==# 'arg' ? 1 : 0)).'/'.size.']'
+    endfor
+
+    return '[]'
+endfu
+
+fu! statusline#main() abort "{{{2
+    return '%{statusline#list_position()}'
+       \.  ' %1*%{statusline#tail_of_path()}%* '
        \.  '%-5r%-10w'
-       \.  '%2*%{&modified ? "[+]" : ""}%*'
+       \.  '%2*%{&modified && &buftype !=? "terminal" ? "[+]" : ""}%*'
        \.  '%='
        \.  '%-5{!empty(&ve) ? "[ve]" : ""}'
        \.  '%-7{exists("*capslock#status") ? capslock#status() : ""}'
@@ -124,68 +188,14 @@ endfu
 "         • a '>' on the right for numeric items (only `maxwid - 2` digits are kept)
 "           the number after '>' stands for how many digits are missing
 
-fu! List_position_status() abort "{{{2
-    if !get(g:, 'my_stl_list_position', 0)
-        return ''
-    endif
+fu! statusline#tail_of_path() abort "{{{2
+    let tail = fnamemodify(expand('%:p'), ':t')
 
-    " FIXME: At least ONE of the variables used by a lambda must be created BEFORE{{{
-    " the lambda. Is it documented? I can't find anything in `:h closure`,
-    " nor in `:h :func-closure` (nor on Vim's repo: `lambda E121`).
-    "
-    " So, here, we could move 2 out of the 3 following assignments after the lambda,
-    " but at least 1 should stay before. I prefer to write the 3 before.
-    "
-    " Reproduce:
-    "
-    "         fu! Func()
-    "             let Test = { -> foo + bar == 3 }
-    "             let foo  = 1
-    "             let bar  = 2
-    "             return Test()
-    "         endfu
-    "         echo Func()
-    "         → 1    ✔
-    "
-    "         fu! Func()
-    "             let foo  = 1
-    "             let Test = { -> foo + bar == 3 }
-    "             let bar  = 2
-    "             return Test()
-    "         endfu
-    "         echo Func()
-    "         → E121    ✘}}}
-    let [ s:cur_col, s:cur_line, s:cur_buf ] = [ col('.'),     line('.'), bufnr('%') ]
-    let [ s:bufname, s:argidx, s:argc ]      = [ bufname('%'), argidx(),  argc() ]
-
-    let lists = [ {'name': 'qfl', 'data': getqflist()},
-              \   {'name': 'arg', 'data': map(range(argc()), 'argv(v:val)')} ]
-
-    for s:list in lists
-        if empty(s:list.data)
-            continue
-        endif
-
-        let info = { 'qfl':  getqflist({ 'idx': 1,         'size': 1      }),
-                 \   'arg':            { 'idx':  argidx(), 'size': argc() },
-                 \ }[s:list.name]
-
-        if len(info) < 2 | continue | endif
-
-        let [ idx, size ] = [ info.idx, info.size ]
-        let s:cur_entry   = s:list.data[idx-1]
-
-        return ( s:is_in_list_and_current()()
-            \?      {'qfl': 'C', 'arg': 'A'}[s:list.name]
-            \
-            \:   s:is_in_list_but_not_current()()
-            \?      {'qfl': 'c', 'arg': 'a'}[s:list.name]
-            \:      {'qfl': 'ȼ', 'arg': 'ā'}[s:list.name]
-            \ )
-            \ .'['.(idx + (s:list.name ==# 'arg' ? 1 : 0)).'/'.size.']'
-    endfor
-
-    return '[]'
+    return &buftype !=? 'terminal'
+        \? tail != ''
+        \?     tail
+        \:     '[No Name]'
+        \:     '[term]'
 endfu
 
 " Options {{{1
@@ -193,4 +203,4 @@ endfu
 " always enable the status line
 set laststatus=2
 
-set statusline=%!My_status_line()
+set statusline=%!statusline#main()
