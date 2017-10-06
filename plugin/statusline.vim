@@ -191,10 +191,12 @@ endfu
 fu! statusline#tail_of_path() abort "{{{2
     let tail = fnamemodify(expand('%:p'), ':t')
 
-    return &buftype !=? 'terminal'
+    return &buftype  !=# 'terminal'
+        \? &filetype !=# 'dirvish'
         \? tail != ''
         \?     tail
         \:     '[No Name]'
+        \:     '[dirvish]'
         \:     '[term]'
 endfu
 
