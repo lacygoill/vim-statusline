@@ -42,12 +42,12 @@ endfu
 fu! s:is_in_list_but_not_current() abort "{{{2
     return
     \      { 'qfl':
-    \               { -> count(
+    \               { -> index(
     \                     map(deepcopy(s:list.data), '[ v:val.bufnr, v:val.lnum, v:val.col ]'),
-    \                     [ s:cur_buf, s:cur_line, s:cur_col ])
+    \                     [ s:cur_buf, s:cur_line, s:cur_col ]) != -1
     \               },
     \
-    \        'arg': { -> count(map(range(s:argc), 'argv(v:val)'), s:bufname) }
+    \        'arg': { -> index(map(range(s:argc), 'argv(v:val)'), s:bufname) != -1 }
     \      }[ s:list.name ]
 endfu
 
