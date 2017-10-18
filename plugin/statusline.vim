@@ -115,7 +115,10 @@ fu! statusline#list_position() abort "{{{2
     return '[]'
 endfu
 
-fu! statusline#main() abort "{{{2
+fu! statusline#main(enable) abort "{{{2
+    if !a:enable
+        return ' %1*%{statusline#tail_of_path()}%* '
+    endif
     return '%{statusline#list_position()}'
        \.  ' %1*%{statusline#tail_of_path()}%* '
        \.  '%-5r%-10w'
@@ -205,4 +208,8 @@ endfu
 " always enable the status line
 set laststatus=2
 
-set statusline=%!statusline#main()
+augroup my_statusline
+    au!
+    au WinLeave * setl stl=%!statusline#main(0)
+    au WinEnter * setl stl=%!statusline#main(1)
+augroup END
