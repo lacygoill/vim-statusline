@@ -125,7 +125,7 @@ endfu
 
 fu! statusline#main(enable) abort "{{{2
     if !a:enable
-        return ' %1*%{statusline#tail_of_path()}%* '
+        return ' %1*%{statusline#tail_of_path()}%* %w'
     endif
     return '%{statusline#list_position()}'
        \.  ' %1*%{statusline#tail_of_path()}%* '
