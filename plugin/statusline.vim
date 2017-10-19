@@ -60,8 +60,11 @@ fu! statusline#list_position() abort "{{{2
     " the lambda. Is it documented? I can't find anything in `:h closure`,
     " nor in `:h :func-closure` (nor on Vim's repo: `lambda E121`).
     "
-    " So, here, we could move 2 out of the 3 following assignments after the lambda,
-    " but at least 1 should stay before. I prefer to write the 3 before.
+    " I could understand the rule “all variables used by a lambda must be created
+    " before the latter“. But, if some variables can be created after, why not all?
+    "
+    " Anyway, here, we could move 2 out of the 3 following assignments after the
+    " lambda, but at least 1 should stay before. I prefer to write the 3 before.
     "
     " Reproduce:
     "
