@@ -63,6 +63,11 @@ fu! statusline#list_position() abort "{{{2
     " I could understand the rule “all variables used by a lambda must be created
     " before the latter“. But, if some variables can be created after, why not all?
     "
+    " Theory:
+    " When one variable used  by a lambda is created before  the latter, it runs
+    " in the context  of the function. When, all variables used  by a lambda are
+    " created after the latter, it does NOT run in the context of the function.
+    "
     " Anyway, here, we could move 2 out of the 3 following assignments after the
     " lambda, but at least 1 should stay before. I prefer to write the 3 before.
     "
