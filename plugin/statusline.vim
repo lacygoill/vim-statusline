@@ -145,6 +145,8 @@ fu! statusline#main(has_focus) abort "{{{2
 endfu
 
 " This function can be called when we enter a window, or when we leave one.
+
+" Treat a qf buffer separately.{{{
 "
 " For a qf buffer, the default local value of 'stl' can be found here:
 "         $VIMRUNTIME/ftplugin/qf.vim
@@ -152,10 +154,12 @@ endfu
 " It's important  to treat it  separately, because  our default value  for 'stl'
 " wouldn't give us much information in a qf window. In particular, we would miss
 " its title.
+"}}}
+" Do NOT assume that the 1st expression will be evaluated only in the window you leave. {{{
 "
-" `main(1)` will be called only for the window to which we give the focus.
-" But `main(0)` will be called for ANY window which doesn't have the focus.
-" And `main(0)` will be called every time the statuslines must be redrawn,
+" `main(1)` will be evaluated only for the window to which we give the focus.
+" But `main(0)` will be evaluated for ANY window which doesn't have the focus.
+" And `main(0)` will be evaluated every time the statuslines must be redrawn,
 " which happens every time we change the focus from a window to another.
 " This means that when you write the 1st expression:
 "
@@ -163,13 +167,14 @@ endfu
 "             return 1st_expr
 "         endif
 "
-" … you must NOT assume that you're  leaving the window in which the focus was
-" just before. You MUST assume that you're leaving ANY window which doesn't have
-" the focus.
+" … you  must NOT assume  that this expression will  only be evaluated  in the
+" window in  which the focus  was just before. It  will be evaluated  inside ALL
+" windows which don't have the focus, every time you change the focused window.
+"
 " This  means that,  in  this 1st  expression,  you can  NOT  reliably test  any
 " buffer/window local variable.  You can in the 2nd expression: the one used for
 " the focused window.
-
+"}}}
 " About the modified flag: {{{3
 
 "         %m    ✘
