@@ -123,21 +123,52 @@ fu! statusline#list_position() abort "{{{2
     return '[]'
 endfu
 
-fu! statusline#main(enable) abort "{{{2
-    if !a:enable
+fu! statusline#main(has_focus) abort "{{{2
+    if !a:has_focus
         return ' %1*%{statusline#tail_of_path()}%* %w'
     endif
-    return '%{statusline#list_position()}'
-       \.  ' %1*%{statusline#tail_of_path()}%* '
-       \.  '%-5r%-10w'
-       \.  '%2*%{&modified && &buftype !=? "terminal" ? "[+]" : ""}%*'
-       \.  '%='
-       \.  '%-5{!empty(&ve) ? "[ve]" : ""}'
-       \.  '%-7{exists("*capslock#status") ? capslock#status() : ""}'
-       \.  '%-5{exists("*session#status")  ? session#status()  : ""}'
-       \.  '%-8(%.5l,%.3v%)'
-       \.  '%4p%% '
+    return &ft ==# 'qf'
+        \?     "%{get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '}
+        \%{exists('w:quickfix_title')? ' '.w:quickfix_title : ''}
+        \ %=%-15(%l,%c%V%) %P"
+        \:
+        \       '%{statusline#list_position()}'
+        \.      ' %1*%{statusline#tail_of_path()}%* '
+        \.      '%-5r%-10w'
+        \.      '%2*%{&modified && &buftype !=? "terminal" ? "[+]" : ""}%*'
+        \.      '%='
+        \.      '%-5{!empty(&ve) ? "[ve]" : ""}'
+        \.      '%-7{exists("*capslock#status") ? capslock#status() : ""}'
+        \.      '%-5{exists("*session#status")  ? session#status()  : ""}'
+        \.      '%-8(%.5l,%.3v%)'
+        \.      '%4p%% '
 endfu
+
+" This function can be called when we enter a window, or when we leave one.
+"
+" For a qf buffer, the default local value of 'stl' can be found here:
+"         $VIMRUNTIME/ftplugin/qf.vim
+"
+" It's important  to treat it  separately, because  our default value  for 'stl'
+" wouldn't give us much information in a qf window. In particular, we would miss
+" its title.
+"
+" `main(1)` will be called only for the window to which we give the focus.
+" But `main(0)` will be called for ANY window which doesn't have the focus.
+" And `main(0)` will be called every time the statuslines must be redrawn,
+" which happens every time we change the focus from a window to another.
+" This means that when you write the 1st expression:
+"
+"         if !a:has_focus
+"             return 1st_expr
+"         endif
+"
+" … you must NOT assume that you're  leaving the window in which the focus was
+" just before. You MUST assume that you're leaving ANY window which doesn't have
+" the focus.
+" This  means that,  in  this 1st  expression,  you can  NOT  reliably test  any
+" buffer/window local variable.  You can in the 2nd expression: the one used for
+" the focused window.
 
 " About the modified flag: {{{3
 
@@ -204,12 +235,40 @@ fu! statusline#tail_of_path() abort "{{{2
 
     return &buftype  !=# 'terminal'
         \? &filetype !=# 'dirvish'
+        \? &filetype !=# 'qf'
         \? tail != ''
         \?     tail
         \:     '[No Name]'
+        \:     b:qf_is_loclist ? '[LL]' : '[QF]'
         \:     '[dirvish]'
         \:     '[term]'
 endfu
+
+" How to read the returned expression:{{{
+"
+"     • pair the tests and the value as if they were an imbrication of parentheses
+"
+"     Example:
+"             1st test    =    &buftype !=# 'terminal'
+"             last value  =    [term]
+"
+"             2nd test           =    &buftype !=# 'dirvish'
+"             penultimate value  =    [dirvish]
+"
+"             …
+"
+"     • when a test fails, the returned value is immediately known:
+"       it's the one paired with the test
+"
+"     • when a test succeeds, the next test is evaluated:
+"       all the previous ones are known to be true
+"
+"     • If all tests succeed, the value which is used is `tail`.
+"       It's the only one which isn't paired with any test.
+"       It means that it's used iff all the tests have NOT failed.
+"       It's the default value used for a buffer without any peculiarity:
+"       random type, random name
+"}}}
 
 " Options {{{1
 
@@ -218,9 +277,10 @@ set laststatus=2
 
 augroup my_statusline
     au!
-    au BufWinEnter,WinEnter *           setl stl=%!statusline#main(1)
-    au WinLeave             *           setl stl=%!statusline#main(0)
-    au Filetype             dirvish     setl stl=%!statusline#main(0)
+    au BufWinEnter,WinEnter   *         setl stl=%!statusline#main(1)
+    au WinLeave               *         setl stl=%!statusline#main(0)
+    au Filetype               dirvish   setl stl=%!statusline#main(0)
+
     " Alternative:
     " The last  autocmd is needed  for a dirvish  buffer, because no  WinEnter /
     " BufWinEnter event is fired right after its creation.
