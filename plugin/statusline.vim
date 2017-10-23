@@ -281,11 +281,13 @@ set laststatus=2
 
 augroup my_statusline
     au!
+
+    " needed for  a dirvish buffer, because  no WinEnter / BufWinEnter  is fired
+    " right after its creation.
+    au Filetype               dirvish   setl stl=%!statusline#main(0)
     au BufWinEnter,WinEnter   *         setl stl=%!statusline#main(1)
     au WinLeave               *         setl stl=%!statusline#main(0)
-    au Filetype               dirvish   setl stl=%!statusline#main(0)
 
-    " Alternative:
-    " The last  autocmd is needed  for a dirvish  buffer, because no  WinEnter /
-    " BufWinEnter event is fired right after its creation.
+    " show just the line number in a command line window
+    au CmdWinEnter           *          let &stl = '%=%l  '
 augroup END
