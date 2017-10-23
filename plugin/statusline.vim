@@ -111,13 +111,12 @@ fu! statusline#list_position() abort "{{{2
         let s:cur_entry   = s:list.data[idx-1]
 
         return ( s:is_in_list_and_current()()
-            \?      {'qfl': 'C', 'arg': 'A'}[s:list.name]
-            \
-            \:   s:is_in_list_but_not_current()()
-            \?      {'qfl': 'c', 'arg': 'a'}[s:list.name]
-            \:      {'qfl': 'ȼ', 'arg': 'ā'}[s:list.name]
-            \ )
-            \ .'['.(idx + (s:list.name ==# 'arg' ? 1 : 0)).'/'.size.']'
+        \?           {'qfl': 'C', 'arg': 'A'}[s:list.name]
+        \:       s:is_in_list_but_not_current()()
+        \?           {'qfl': 'c', 'arg': 'a'}[s:list.name]
+        \:           {'qfl': 'ȼ', 'arg': 'ā'}[s:list.name]
+        \      )
+        \      .'['.(idx + (s:list.name ==# 'arg' ? 1 : 0)).'/'.size.']'
     endfor
 
     return '[]'
@@ -128,20 +127,20 @@ fu! statusline#main(has_focus) abort "{{{2
         return ' %1*%{statusline#tail_of_path()}%* %w'
     endif
     return &ft ==# 'qf'
-        \?     "%{get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '}
-        \%{exists('w:quickfix_title')? ' '.w:quickfix_title : ''}
-        \ %=%-15(%l,%c%V%) %P"
-        \:
-        \       '%{statusline#list_position()}'
-        \.      ' %1*%{statusline#tail_of_path()}%* '
-        \.      '%-5r%-10w'
-        \.      '%2*%{&modified && &buftype !=? "terminal" ? "[+]" : ""}%*'
-        \.      '%='
-        \.      '%-5{!empty(&ve) ? "[ve]" : ""}'
-        \.      '%-7{exists("*capslock#status") ? capslock#status() : ""}'
-        \.      '%-5{exists("*session#status")  ? session#status()  : ""}'
-        \.      '%-8(%.5l,%.3v%)'
-        \.      '%4p%% '
+    \?         "%{get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '}
+    \%{exists('w:quickfix_title')? ' '.w:quickfix_title : ''}
+    \ %=%-15(%l,%c%V%) %P"
+    \
+    \:          '%{statusline#list_position()}'
+    \          .' %1*%{statusline#tail_of_path()}%* '
+    \          .'%-5r%-10w'
+    \          .'%2*%{&modified && &buftype !=? "terminal" ? "[+]" : ""}%*'
+    \          .'%='
+    \          .'%-5{!empty(&ve) ? "[ve]" : ""}'
+    \          .'%-7{exists("*capslock#status") ? capslock#status() : ""}'
+    \          .'%-5{exists("*session#status")  ? session#status()  : ""}'
+    \          .'%-8(%.5l,%.3v%)'
+    \          .'%4p%% '
 endfu
 
 " This function can be called when we enter a window, or when we leave one.
@@ -239,14 +238,14 @@ fu! statusline#tail_of_path() abort "{{{2
     let tail = fnamemodify(expand('%:p'), ':t')
 
     return &buftype  !=# 'terminal'
-        \? &filetype !=# 'dirvish'
-        \? &filetype !=# 'qf'
-        \? tail != ''
-        \?     tail
-        \:     '[No Name]'
-        \:     b:qf_is_loclist ? '[LL]' : '[QF]'
-        \:     '[dirvish]'
-        \:     '[term]'
+    \?     &filetype !=# 'dirvish'
+    \?     &filetype !=# 'qf'
+    \?     tail != ''
+    \?         tail
+    \:         '[No Name]'
+    \:         b:qf_is_loclist ? '[LL]' : '[QF]'
+    \:         '[dirvish]'
+    \:         '[term]'
 endfu
 
 " How to read the returned expression:{{{
