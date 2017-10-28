@@ -234,18 +234,118 @@ endfu
 "         • a '>' on the right for numeric items (only `maxwid - 2` digits are kept)
 "           the number after '>' stands for how many digits are missing
 
+fu! statusline#tabline() abort "{{{2
+    let s = ''
+    for i in range(1, tabpagenr('$'))
+        if i == tabpagenr()
+            " color the label of the current tab page with the HG TabLineSel
+            let s .= '%#TabLineSel#'
+        else
+            " the others with TabLine
+            let s .= '%#TabLine#'
+        endif
+
+        " set the tab page nr
+        " used by the mouse to recognize the tab page on which we click
+        let s .= '%'.i.'T'
+
+        " set the label by invoking another function `statusline#tabpage_label()`
+        let s .= ' %{statusline#tabpage_label('.i.')} '
+        "         │                                 │
+        "         │                                 └─ space to separate the label from the next one
+        "         └─ space to separate the label from the previous one
+    endfor
+
+    " color the rest of the line with TabLineFill and reset tab page nr
+    let s .= '%#TabLineFill#%T'
+
+    " Commented because I don't need a closing label, I don't use the mouse.
+    " Keep it for educational purpose.
+    "
+    " add a closing label
+    "                                ┌ %X    = closing label
+    "                                │ 999   = nr of the tab page to close when we click on the label
+    "                                │         (big nr = last)
+    "                                │ close = text to display
+    "                       ┌────────┤
+    " let s .= '%=%#TabLine#%999Xclose'
+    "           └┤
+    "            └ right-align next labels
+
+    return s
+endfu
+
+" What does `statusline#tabline()` return ?{{{
+"
+" Suppose we have 3 tab pages, and the focus is currently in the 2nd one.
+" The value of 'tal' could be similar to this:
+"
+"         %#TabLine#%1T %{MyTabLabel(1)}
+"         %#TabLineSel#%2T %{MyTabLabel(2)}
+"         %#TabLine#%3T %{MyTabLabel(3)}
+"         %#TabLineFill#%T%=%#TabLine#%999Xclose
+"
+" NOTE:
+" Any item must begin with `%`.
+" An expression must be surrounded with `{}`.
+" The HGs must be surrounded with `#`.
+" We should only use one of the 3 following HGs, to highlight:
+"
+"         • TabLine        the non-focused labels
+"         • TabLineSel     the focused label
+"         • TabLineFill    the rest of the tabline
+"}}}
+fu! statusline#tabpage_label(n) abort "{{{2
+    "                   ┌ I give you the nr of a tabpage
+    "             ┌─────┤
+    let buflist = tabpagebuflist(a:n)
+    "                    └─────┤
+    "                          └ give me its buffer list:
+    "                            for each window in the tabpage, the function
+    "                            adds the nr of the buffer that it displays
+    "                            inside a list, and returns the final list
+    "
+    "                 ┌ I give you the nr of of a tabpage
+    "           ┌─────┤
+    let winnr = tabpagewinnr(a:n)
+    "                  └───┤
+    "                      └ give me the number of its focused window
+
+    let bufnr = buflist[winnr - 1]
+
+    "            ┌ I give you the nr of a buffer
+    "          ┌─┤
+    let name = bufname(bufnr)
+    "             └──┤
+    "                └ give me its name
+
+    " Alternative to `get(b:, 'qf_is_loclist', 0)` :
+    "
+    "         empty(getloclist(winnr))
+
+    return getbufvar(bufnr, '&bt', '') ==# 'terminal'
+    \?         '[term]'
+    \:     name[-1:] ==# '/'
+    \?         fnamemodify(name, ':h:t').'/'
+    \:     getbufvar(bufnr, '&ft') ==# 'qf'
+    \?         getbufvar(bufnr, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
+    \:     empty(name)
+    \?         'ø'
+    \:         fnamemodify(name, ':t')
+endfu
+
 fu! statusline#tail_of_path() abort "{{{2
     let tail = fnamemodify(expand('%:p'), ':t')
 
-    return &buftype  !=# 'terminal'
-    \?     &filetype !=# 'dirvish'
-    \?     &filetype !=# 'qf'
-    \?     tail != ''
-    \?         tail
-    \:         '[No Name]'
-    \:         b:qf_is_loclist ? '[LL]' : '[QF]'
-    \:         '[dirvish]'
-    \:         '[term]'
+    return &buftype ==# 'terminal'
+    \?         '[term]'
+    \:     &filetype ==# 'dirvish'
+    \?         '[dirvish]'
+    \:     &filetype ==# 'qf'
+    \?         b:qf_is_loclist ? '[LL]' : '[QF]'
+    \:     tail == ''
+    \?         '[No Name]'
+    \:         tail
 endfu
 
 " How to read the returned expression:{{{
@@ -278,6 +378,30 @@ endfu
 
 " always enable the status line
 set laststatus=2
+
+" if you want to always enable the tabline
+"
+"         set showtabline=2
+"
+" Atm I don't do it, because I don't want it when there's only 1 tabpage.
+
+
+" `vim-flagship` recommends to remove the value `e` from 'guioptions', because it:
+"
+"         “disables  the GUI  tab line  in favor  of the  plain text  version,
+"         enabling global flags and the tab prefix explained below.“
+"
+set guioptions-=e
+
+
+" 'tabline' controls the contents of the tabline (tab pages labels)
+" only for terminal
+"
+" But,  since the  number  of tab  labels  may  vary, we  can't  set the  option
+" directly, we need to build it inside a function, and use the returned value of
+" the latter.
+set tabline=%!statusline#tabline()
+
 
 augroup my_statusline
     au!
