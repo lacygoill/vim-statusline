@@ -251,8 +251,8 @@ fu! statusline#tabline() abort "{{{2
 
         " set the label by invoking another function `statusline#tabpage_label()`
         let s .= ' %{statusline#tabpage_label('.i.')} '
-        "         │                                 │
-        "         │                                 └─ space to separate the label from the next one
+        "         │                                  │
+        "         │                                  └─ space to separate the label from the next one
         "         └─ space to separate the label from the previous one
     endfor
 
@@ -342,7 +342,7 @@ fu! statusline#tail_of_path() abort "{{{2
     \:     &filetype ==# 'dirvish'
     \?         '[dirvish]'
     \:     &filetype ==# 'qf'
-    \?         b:qf_is_loclist ? '[LL]' : '[QF]'
+    \?         get(b:, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
     \:     tail == ''
     \?         '[No Name]'
     \:         tail
@@ -390,7 +390,6 @@ set laststatus=2
 "
 "         “disables  the GUI  tab line  in favor  of the  plain text  version,
 "         enabling global flags and the tab prefix explained below.“
-"
 set guioptions-=e
 
 
