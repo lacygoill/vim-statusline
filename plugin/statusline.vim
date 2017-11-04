@@ -74,19 +74,19 @@ fu! statusline#list_position() abort "{{{2
     " Reproduce:
     "
     "         fu! Func()
-    "             let Test = { -> foo + bar == 3 }
+    "             let l:Test = { -> foo + bar == 3 }
     "             let foo  = 1
     "             let bar  = 2
-    "             return Test()
+    "             return l:Test()
     "         endfu
     "         echo Func()
     "         → 1    ✘
     "
     "         fu! Func()
     "             let foo  = 1
-    "             let Test = { -> foo + bar == 3 }
+    "             let l:Test = { -> foo + bar == 3 }
     "             let bar  = 2
-    "             return Test()
+    "             return l:Test()
     "         endfu
     "         echo Func()
     "         → E121    ✔}}}
