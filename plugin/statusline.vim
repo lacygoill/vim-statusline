@@ -8,12 +8,6 @@
 " Vim Powerline-like status line without the need of any plugin:
 "     https://gist.github.com/ericbn/f2956cd9ec7d6bff8940c2087247b132
 
-" The last link uses the `%(%)` token; its meaning is explained in `:h 'stl`:
-"
-"     ( -   Start of item group.  Can be used for setting the width and
-"           alignment of a section.  Must be followed by %) somewhere.
-"     ) -   End of item group.  No width fields allowed.
-
 " TODO:
 " If possible, make the `%{statusline#list_position()}` item local to the current window.
 " For inspiration, study `vim-flagship` first.
@@ -124,7 +118,7 @@ endfu
 
 fu! statusline#main(has_focus) abort "{{{2
     if !a:has_focus
-        return ' %1*%{statusline#tail_of_path()}%* %w'
+        return ' %1*%{statusline#tail_of_path()}%* %w%=%-19(%.5{&ft ==# "qf" ? line(".") : ""}%)'
     endif
     return &ft ==# 'qf'
     \?         "%{get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '}
@@ -154,7 +148,7 @@ endfu
 " wouldn't give us much information in a qf window. In particular, we would miss
 " its title.
 "}}}
-" Do NOT assume that the 1st expression will be evaluated only in the window you leave. {{{
+" Do NOT assume that the expression for non-focused windows will be evaluated only in the window you leave. {{{
 "
 " `main(1)` will be evaluated only for the window to which we give the focus.
 " But `main(0)` will be evaluated for ANY window which doesn't have the focus.
@@ -170,29 +164,73 @@ endfu
 " window in  which the focus  was just before. It  will be evaluated  inside ALL
 " windows which don't have the focus, every time you change the focused window.
 "
-" This  means that,  in  this 1st  expression,  you can  NOT  reliably test  any
-" buffer/window local variable.  You can in the 2nd expression: the one used for
-" the focused window.
+" This means that, if you want to reliably test a (buffer/window-)local variable:
+"
+"         • you NEED a `%{}`              in the expression for the non-focused windows
+"         • you CAN work without a `%{}`  in the expression for the     focused window
+"
+" This  explains  why you  can  test  `&ft` outside  a  `%{}`  item in  the  2nd
+" expression, but not in the first:
+"
+"         if !has_focus
+"             return '…'.(&ft ==# 'qf' ? '…' : '')    ✘
+"         endif
+"         return &ft ==# 'qf'                         ✔
+"         ?…
+"         :…
+"
+"
+"         if !has_focus
+"             return '…%{&ft ==# 'qf' ? "…" : ""}'    ✔
+"         endif
+"         return &ft ==# 'qf'                         ✔
+"         ?…
+"         :…
 "}}}
-" About the modified flag: {{{3
+" %m {{{3
 
-"         %m    ✘
+"     %m                                ✘
 "
 " Can't use this because we want the flag to be colored by HG `User1`.
 "
 "     (&modified ? '%2*%m%*' : '%m')    ✘
 "
-" Can't use this because `&modified` will be evaluated in the context
-" of the current window and buffer. So the state of the focused window will be,
-" wrongly, reflected in ALL statuslines.
+" Can't use  this because `&modified`  will be evaluated  in the context  of the
+" window and buffer which has the focus. So the state of the focused window will
+" be, wrongly, reflected in ALL statuslines.
 "
 "     %2*%{&modified ? "[+]" : ""}%*    ✔
 "
-" The solution is to use the `%{expr}` syntax, because the expression inside
-" the curly braces is evaluated in the context of the window to which the statusline
+" The solution is to use the `%{}` item, because the expression inside the curly
+" braces  is evaluated  in the  context of  the window  to which  the statusline
 " belongs.
 
-" About the other items: "{{{3
+" `%(%)` {{{3
+"
+" Useful to set the desired width / justification of a group of items.
+"
+" Example:
+"
+"          ┌─ left justification
+"          │ ┌─ width of the group
+"          │ │
+"          │ │       ┌ various items inside the group
+"          │ │ ┌─────┤
+"         %-15(%l,%c%V%)
+"         │           └┤
+"         │            └ end of group
+"         │
+"         └─ beginning of group
+"            the percent is separated from the open parenthesis because of the width field
+"
+" For more info, `:h 'stl`:
+"
+"     ( - Start of item group.  Can  be used for setting the width and alignment
+"                               of a section.  Must be followed by %) somewhere.
+"
+"     ) - End of item group.    No width fields allowed.
+
+" various items "{{{3
 
 "     ┌────────────────────────────────┬─────────────────────────────────────────────────────┐
 "     │ %1*%t%*                        │ switch to HG User1, add filename, reset HG          │
@@ -212,7 +250,7 @@ endfu
 "     │ %p%%                           │ percentage of read lines                            │
 "     └────────────────────────────────┴─────────────────────────────────────────────────────┘
 
-" About the `-{minwid}` field: {{{3
+" `-42` field {{{3
 
 " When you want an item to be followed by a space, but only if it's not empty,
 " write this:
@@ -222,7 +260,7 @@ endfu
 " longer than the item, so a space will be added; and the left-justifcation will
 " cause it to appear at the end (instead of the beginning).
 
-" About the `.{maxwid}` field: {{{3
+" `.42` field {{{3
 
 " To prevent an item from taking too much space, you can limit its length like so:
 "
