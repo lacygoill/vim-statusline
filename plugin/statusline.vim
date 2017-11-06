@@ -257,6 +257,12 @@ endfu
 
 " Set the width of a field to 42 cells.
 "
+" Can be used (after the 1st percent sign) with all kinds of items:
+"
+"         • %l
+"         • %{…}
+"         • %(…%)
+"
 " Useful to prepend a space to an item, but only if it's not empty:
 "
 "                 %-42item
@@ -272,6 +278,12 @@ endfu
 " Limit the width of an item to 42 cells:
 "
 "               %.42item
+"
+" Can be used (after the 1st percent sign) with all kinds of items:
+"
+"         • %l
+"         • %{…}
+"         • %(…%)
 "
 " Truncation occurs with:
 "
