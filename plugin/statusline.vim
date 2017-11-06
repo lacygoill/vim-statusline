@@ -118,12 +118,15 @@ endfu
 
 fu! statusline#main(has_focus) abort "{{{2
     if !a:has_focus
-        return ' %1*%{statusline#tail_of_path()}%* %w%=%-19(%.5{&ft ==# "qf" ? line(".") : ""}%)'
+        return ' %1*%{statusline#tail_of_path()}%* %w%=%-22(%{
+        \         &ft ==# "qf"
+        \         ?     line(".")."/".line("$")
+        \         :     ""}%)'
     endif
     return &ft ==# 'qf'
     \?         "%{get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '}
     \%{exists('w:quickfix_title')? ' '.w:quickfix_title : ''}
-    \ %=%-15(%l,%c%V%) %P"
+    \ %=%-15(%l/%L%) %4p%% "
     \
     \:          '%{statusline#list_position()}'
     \          .' %1*%{statusline#tail_of_path()}%* '
@@ -252,17 +255,21 @@ endfu
 
 " `-42` field {{{3
 
-" When you want an item to be followed by a space, but only if it's not empty,
-" write this:
-"                 %-42item
+" Set the width of a field to 42 cells.
 "
-" … the length of the item being 41. The width of the field will be one character
-" longer than the item, so a space will be added; and the left-justifcation will
-" cause it to appear at the end (instead of the beginning).
+" Useful to prepend a space to an item, but only if it's not empty:
+"
+"                 %-42item
+"                     └──┤
+"                        └ suppose that the width of the item is 41
+"
+" The width  of the field  is one unit  greater than the one  of the item,  so a
+" space will be added; and the left-justifcation  will cause it to appear at the
+" end (instead of the beginning).
 
 " `.42` field {{{3
 
-" To prevent an item from taking too much space, you can limit its length like so:
+" Limit the width of an item to 42 cells:
 "
 "               %.42item
 "
