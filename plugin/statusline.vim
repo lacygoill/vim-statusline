@@ -74,7 +74,7 @@ fu! statusline#list_position() abort "{{{2
     "             return l:Test()
     "         endfu
     "         echo Func()
-    "         → 1    ✘
+    "         → 1
     "
     "         fu! Func()
     "             let foo  = 1
@@ -83,7 +83,8 @@ fu! statusline#list_position() abort "{{{2
     "             return l:Test()
     "         endfu
     "         echo Func()
-    "         → E121    ✔}}}
+    "         → E121
+    "         }}}
     let [ s:cur_col, s:cur_line, s:cur_buf ] = [ col('.'),     line('.'), bufnr('%') ]
     let [ s:bufname, s:argidx, s:argc ]      = [ bufname('%'), argidx(),  argc() ]
 
@@ -358,7 +359,7 @@ fu! statusline#tabpage_label(n) abort "{{{2
     "                            adds the nr of the buffer that it displays
     "                            inside a list, and returns the final list
     "
-    "                 ┌ I give you the nr of of a tabpage
+    "                 ┌ I give you the nr of a tabpage
     "           ┌─────┤
     let winnr = tabpagewinnr(a:n)
     "                  └───┤
@@ -401,6 +402,19 @@ fu! statusline#tail_of_path() abort "{{{2
     \:         tail
 endfu
 
+" The following comment is kept for educational purpose, but no longer relevant.{{{
+" It applied to a different expression than the one currently used. Sth like:
+"
+"         return &buftype  !=# 'terminal'
+"         \?     &filetype !=# 'dirvish'
+"         \?     &filetype !=# 'qf'
+"         \?     tail != ''
+"         \?         tail
+"         \:         '[No Name]'
+"         \:         b:qf_is_loclist ? '[LL]' : '[QF]'
+"         \:         '[dirvish]'
+"         \:         '[term]'
+"}}}
 " How to read the returned expression:{{{
 "
 "     • pair the tests and the value as if they were an imbrication of parentheses
@@ -468,5 +482,5 @@ augroup my_statusline
     au WinLeave               *         setl stl=%!statusline#main(0)
 
     " show just the line number in a command line window
-    au CmdWinEnter           *          let &l:stl = '%=%l  '
+    au CmdWinEnter           *          let &l:stl = '%=%l          '
 augroup END
