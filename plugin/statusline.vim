@@ -294,13 +294,9 @@ endfu
 fu! statusline#tabline() abort "{{{2
     let s = ''
     for i in range(1, tabpagenr('$'))
-        if i == tabpagenr()
-            " color the label of the current tab page with the HG TabLineSel
-            let s .= '%#TabLineSel#'
-        else
-            " the others with TabLine
-            let s .= '%#TabLine#'
-        endif
+        " color the label of the current tab page with the HG TabLineSel
+        " the others with TabLine
+        let s .= i== tabpagenr() ? '%#TabLineSel#' : '%#TabLine#'
 
         " set the tab page nr
         " used by the mouse to recognize the tab page on which we click
