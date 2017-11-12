@@ -472,5 +472,5 @@ augroup my_statusline
     au WinLeave               *         setl stl=%!statusline#main(0)
 
     " show just the line number in a command line window
-    au CmdWinEnter           *          let &stl = '%=%l  '
+    au CmdWinEnter           *          let &l:stl = '%=%l  '
 augroup END
