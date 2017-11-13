@@ -18,15 +18,15 @@ fu! s:is_in_list_and_current() abort "{{{2
     \      { 'qfl':
     \               { ->
     \                       [ s:cur_buf,         s:cur_line,       s:cur_col ]
-    \                ==     [ s:cur_entry.bufnr, s:cur_entry.lnum, s:cur_entry.col ]
+    \                    == [ s:cur_entry.bufnr, s:cur_entry.lnum, s:cur_entry.col ]
     \                ||
     \                       [ s:cur_buf,         s:cur_line       ]
-    \                ==     [ s:cur_entry.bufnr, s:cur_entry.lnum ]
-    \                &&     s:cur_entry.col == 0
+    \                    == [ s:cur_entry.bufnr, s:cur_entry.lnum ]
+    \                    && s:cur_entry.col == 0
     \                ||
     \                       s:cur_buf
-    \                ==     s:cur_entry.bufnr
-    \                &&     [ s:cur_entry.lnum, s:cur_entry.col ] == [ 0, 0]
+    \                    == s:cur_entry.bufnr
+    \                    && [ s:cur_entry.lnum, s:cur_entry.col ] == [ 0, 0 ]
     \               },
     \
     \        'arg': { -> s:bufname ==# argv(s:argidx) }
@@ -297,7 +297,7 @@ fu! statusline#tabline() abort "{{{2
     for i in range(1, tabpagenr('$'))
         " color the label of the current tab page with the HG TabLineSel
         " the others with TabLine
-        let s .= i== tabpagenr() ? '%#TabLineSel#' : '%#TabLine#'
+        let s .= i == tabpagenr() ? '%#TabLineSel#' : '%#TabLine#'
 
         " set the tab page nr
         " used by the mouse to recognize the tab page on which we click
@@ -423,7 +423,7 @@ endfu
 "             1st test    =    &buftype !=# 'terminal'
 "             last value  =    [term]
 "
-"             2nd test           =    &buftype !=# 'dirvish'
+"             2nd test           =    &filetype !=# 'dirvish'
 "             penultimate value  =    [dirvish]
 "
 "             …
