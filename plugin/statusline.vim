@@ -472,11 +472,9 @@ set tabline=%!statusline#tabline()
 augroup my_statusline
     au!
 
-    " needed for  a dirvish buffer, because  no WinEnter / BufWinEnter  is fired
-    " right after its creation.
+    " needed for  a dirvish / man  buffer, because no WinEnter  / BufWinEnter is
+    " fired right after their creation
     au Filetype               dirvish   setl stl=%!statusline#main(0)
-    " needed for a man buffer, because  no WinEnter / BufWinEnter is fired right
-    " after its creation.
     au Filetype               man       setl stl=%!statusline#main(1)
     au BufWinEnter,WinEnter   *         setl stl=%!statusline#main(1)
     au WinLeave               *         setl stl=%!statusline#main(0)
