@@ -350,16 +350,16 @@ endfu
 "         • TabLineFill    the rest of the tabline
 "}}}
 fu! statusline#tabpage_label(n) abort "{{{2
-    "                   ┌ I give you the nr of a tabpage
+    "                   ┌ I give you the nr of a tab page
     "             ┌─────┤
     let buflist = tabpagebuflist(a:n)
     "                    └─────┤
     "                          └ give me its buffer list:
-    "                            for each window in the tabpage, the function
+    "                            for each window in the tab page, the function
     "                            adds the nr of the buffer that it displays
     "                            inside a list, and returns the final list
     "
-    "                 ┌ I give you the nr of a tabpage
+    "                 ┌ I give you the nr of a tab page
     "           ┌─────┤
     let winnr = tabpagewinnr(a:n)
     "                  └───┤
@@ -450,13 +450,12 @@ set laststatus=2
 "
 "         set showtabline=2
 "
-" Atm I don't do it, because I don't want it when there's only 1 tabpage.
+" Atm I don't do it, because I don't want it when there's only 1 tab page.
 
 
 " `vim-flagship` recommends to remove the value `e` from 'guioptions', because it:
 "
-"         “disables  the GUI  tab line  in favor  of the  plain text  version,
-"         enabling global flags and the tab prefix explained below.“
+"         “disables  the GUI  tab line  in favor  of the  plain text  version“
 set guioptions-=e
 
 
@@ -472,12 +471,13 @@ set tabline=%!statusline#tabline()
 augroup my_statusline
     au!
 
-    " needed for  a dirvish / man  buffer, because no WinEnter  / BufWinEnter is
-    " fired right after their creation
-    au Filetype               dirvish   setl stl=%!statusline#main(0)
-    au Filetype               man       setl stl=%!statusline#main(1)
     au BufWinEnter,WinEnter   *         setl stl=%!statusline#main(1)
     au WinLeave               *         setl stl=%!statusline#main(0)
+
+    " needed for  a man / dirvish  buffer, because no WinEnter  / BufWinEnter is
+    " fired right after their creation
+    au Filetype               man       setl stl=%!statusline#main(1)
+    au Filetype               dirvish   setl stl=%!statusline#main(0)
 
     " show just the line number in a command line window
     au CmdWinEnter           *          let &l:stl = '%=%l          '
