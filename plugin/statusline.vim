@@ -38,10 +38,10 @@ fu! s:is_in_list_but_not_current() abort "{{{2
     \      { 'qfl':
     \               { -> index(
     \                     map(deepcopy(s:list.data), '[ v:val.bufnr, v:val.lnum, v:val.col ]'),
-    \                     [ s:cur_buf, s:cur_line, s:cur_col ]) != -1
+    \                     [ s:cur_buf, s:cur_line, s:cur_col ]) >= 0
     \               },
     \
-    \        'arg': { -> index(map(range(s:argc), 'argv(v:val)'), s:bufname) != -1 }
+    \        'arg': { -> index(map(range(s:argc), 'argv(v:val)'), s:bufname) >= 0 }
     \      }[ s:list.name ]
 endfu
 
