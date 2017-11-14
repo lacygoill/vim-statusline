@@ -339,11 +339,12 @@ endfu
 "         %#TabLine#%3T %{MyTabLabel(3)}
 "         %#TabLineFill#%T%=%#TabLine#%999Xclose
 "
-" NOTE:
-" Any item must begin with `%`.
-" An expression must be surrounded with `{}`.
-" The HGs must be surrounded with `#`.
-" We should only use one of the 3 following HGs, to highlight:
+" Rules:
+"
+" • Any item must begin with `%`.
+" • An expression must be surrounded with `{}`.
+" • The HGs must be surrounded with `#`.
+" • We should only use one of the 3 following HGs, to highlight:
 "
 "         • TabLine        the non-focused labels
 "         • TabLineSel     the focused label
@@ -453,7 +454,7 @@ set laststatus=2
 " Atm I don't do it, because I don't want it when there's only 1 tab page.
 
 
-" `vim-flagship` recommends to remove the value `e` from 'guioptions', because it:
+" `vim-flagship` recommends to remove the `e` flag from 'guioptions', because it:
 "
 "         “disables  the GUI  tab line  in favor  of the  plain text  version“
 set guioptions-=e
@@ -480,5 +481,5 @@ augroup my_statusline
     au Filetype               dirvish   setl stl=%!statusline#main(0)
 
     " show just the line number in a command line window
-    au CmdWinEnter           *          let &l:stl = '%=%l          '
+    au CmdWinEnter           *          let &l:stl = ' %l'
 augroup END
