@@ -324,7 +324,7 @@ fu! statusline#tabline() abort "{{{2
     " add a closing label
     "                                ┌ %X    = closing label
     "                                │ 999   = nr of the tab page to close when we click on the label
-    "                                │         (big nr = last)
+    "                                │         (big nr = last tab page currently opened)
     "                                │ close = text to display
     "                       ┌────────┤
     " let s .= '%=%#TabLine#%999Xclose'
@@ -348,12 +348,16 @@ endfu
 "
 " • Any item must begin with `%`.
 " • An expression must be surrounded with `{}`.
-" • The HGs must be surrounded with `#`.
+" • The HGs must be surrounded with `##`.
 " • We should only use one of the 3 following HGs, to highlight:
 "
-"         • TabLine        the non-focused labels
-"         • TabLineSel     the focused label
-"         • TabLineFill    the rest of the tabline
+"       ┌─────────────────────────┬─────────────┐
+"       │ the non-focused labels  │ TabLine     │
+"       ├─────────────────────────┼─────────────┤
+"       │ the focused label       │ TabLineSel  │
+"       ├─────────────────────────┼─────────────┤
+"       │ the rest of the tabline │ TabLineFill │
+"       └─────────────────────────┴─────────────┘
 "}}}
 fu! statusline#tabpage_label(n) abort "{{{2
     "                   ┌ I give you the nr of a tab page
@@ -423,7 +427,7 @@ endfu
 "}}}
 " How to read the returned expression:{{{
 "
-"     • pair the tests and the value as if they were an imbrication of parentheses
+"     • pair the tests and the values as if they were an imbrication of parentheses
 "
 "     Example:
 "             1st test    =    &buftype !=# 'terminal'
