@@ -1,3 +1,8 @@
+if exists('g:loaded_statusline')
+    finish
+endif
+let g:loaded_statusline = 1
+
 " TODO: {{{1
 
 " Read the following links to improve the statusline.
