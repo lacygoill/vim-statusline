@@ -122,6 +122,18 @@ fu! statusline#list_position() abort "{{{2
     return '[]'
 endfu
 
+" This function displays an item showing our position in the qfl or arglist.
+"
+" It only works when `g:my_stl_list_position` is set to 1 (which is not the case
+" by default).   To toggle  the display,  install autocmds  which set  the value
+" automatically when the qfl or arglist is populated.
+"
+" And/or use mappings, such as:
+"
+"         nno <silent> [oi :let g:my_stl_list_position = 1<cr>
+"         nno <silent> ]oi :let g:my_stl_list_position = 0<cr>
+"         nno <silent> coi :let g:my_stl_list_position = !get(g:, 'my_stl_list_position', 0)<cr>
+
 fu! statusline#main(has_focus) abort "{{{2
     if !a:has_focus
         return ' %1*%{statusline#tail_of_path()}%* %w%=%-22(%{
