@@ -212,7 +212,7 @@ endfu
 
 "     %m                                ✘
 "
-" Can't use this because we want the flag to be colored by HG `User1`.
+" Can't use this because we want the flag to be colored by HG `User2`.
 "
 "     (&modified ? '%2*%m%*' : '%m')    ✘
 "
