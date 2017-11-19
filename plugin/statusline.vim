@@ -406,7 +406,7 @@ fu! statusline#tabpage_label(n) abort "{{{2
     \:     getbufvar(bufnr, '&ft') ==# 'qf'
     \?         getbufvar(bufnr, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
     \:     empty(name)
-    \?         'ø'
+    \?         '∅'
     \:         fnamemodify(name, ':t')
 endfu
 
