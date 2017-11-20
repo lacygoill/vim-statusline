@@ -399,7 +399,7 @@ fu! statusline#tabpage_label(n) abort "{{{2
     "
     "         get(get(getwininfo(win_getid(winnr, a:n)), 0, {}), 'loclist', 0)
 
-    return getbufvar(bufnr, '&bt', '') ==# 'terminal'
+    return getbufvar(bufnr, '&buftype', '') ==# 'terminal'
     \?         '[term]'
     \:     name[-1:] ==# '/'
     \?         fnamemodify(name, ':h:t').'/'
