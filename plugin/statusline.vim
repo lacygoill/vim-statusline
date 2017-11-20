@@ -397,13 +397,13 @@ fu! statusline#tabpage_label(n) abort "{{{2
 
     " Alternative to `get(b:, 'qf_is_loclist', 0)` :
     "
-    "         empty(getloclist(winnr))
+    "         getloclist(win_getid(winnr, a:n)) == []
 
     return getbufvar(bufnr, '&bt', '') ==# 'terminal'
     \?         '[term]'
     \:     name[-1:] ==# '/'
     \?         fnamemodify(name, ':h:t').'/'
-    \:     getbufvar(bufnr, '&ft') ==# 'qf'
+    \:     getbufvar(bufnr, '&buftype') ==# 'quickfix'
     \?         getbufvar(bufnr, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
     \:     empty(name)
     \?         '∅'
@@ -417,7 +417,7 @@ fu! statusline#tail_of_path() abort "{{{2
     \?         '[term]'
     \:     &filetype ==# 'dirvish'
     \?         '[dirvish]'
-    \:     &filetype ==# 'qf'
+    \:     &l:buftype ==# 'quickfix'
     \?         get(b:, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
     \:     tail == ''
     \?         '[No Name]'
@@ -427,9 +427,9 @@ endfu
 " The following comment is kept for educational purpose, but no longer relevant.{{{
 " It applied to a different expression than the one currently used. Sth like:
 "
-"         return &buftype  !=# 'terminal'
-"         \?     &filetype !=# 'dirvish'
-"         \?     &filetype !=# 'qf'
+"         return &buftype   !=# 'terminal'
+"         \?     &filetype  !=# 'dirvish'
+"         \?     &l:buftype !=# 'quickfix'
 "         \?     tail != ''
 "         \?         tail
 "         \:         '[No Name]'
