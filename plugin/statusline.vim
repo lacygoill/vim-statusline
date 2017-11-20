@@ -194,17 +194,17 @@ endfu
 " expression, but not in the first:
 "
 "         if !has_focus
-"             return '…'.(&ft ==# 'qf' ? '…' : '')    ✘
+"             return '…'.(&l:buftype ==# 'quickfix' ? '…' : '')    ✘
 "         endif
-"         return &ft ==# 'qf'                         ✔
+"         return &l:buftype ==# 'quickfix'                         ✔
 "         ?…
 "         :…
 "
 "
 "         if !has_focus
-"             return '…%{&ft ==# 'qf' ? "…" : ""}'    ✔
+"             return '…%{&l:buftype ==# 'quickfix' ? "…" : ""}'    ✔
 "         endif
-"         return &ft ==# 'qf'                         ✔
+"         return &l:buftype ==# 'quickfix'                         ✔
 "         ?…
 "         :…
 "}}}
