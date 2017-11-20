@@ -397,7 +397,7 @@ fu! statusline#tabpage_label(n) abort "{{{2
 
     " Alternative to `get(b:, 'qf_is_loclist', 0)` :
     "
-    "         getloclist(win_getid(winnr, a:n)) == []
+    "         get(get(getwininfo(win_getid(winnr, a:n)), 0, {}), 'loclist', 0)
 
     return getbufvar(bufnr, '&bt', '') ==# 'terminal'
     \?         '[term]'
