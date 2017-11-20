@@ -141,7 +141,7 @@ fu! statusline#main(has_focus) abort "{{{2
         \         ?     line(".")."/".line("$")
         \         :     ""}%)'
     endif
-    return &ft ==# 'qf'
+    return &l:buftype ==# 'quickfix'
     \?         "%{get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '}
     \%{exists('w:quickfix_title')? ' '.w:quickfix_title : ''}
     \ %=%-15(%l/%L%) %4p%% "
