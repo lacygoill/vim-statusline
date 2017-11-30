@@ -42,7 +42,7 @@ fu! s:is_in_list_but_not_current() abort "{{{2
     return
     \      { 'qfl':
     \               { -> index(
-    \                     map(deepcopy(s:list.data), { k,v -> [ v.bufnr, v.lnum, v.col ] }),
+    \                     map(deepcopy(s:list.entries), { k,v -> [ v.bufnr, v.lnum, v.col ] }),
     \                     [ s:cur_buf, s:cur_line, s:cur_col ]) >= 0
     \               },
     \
@@ -93,12 +93,12 @@ fu! statusline#list_position() abort "{{{2
     let [ s:cur_col, s:cur_line, s:cur_buf ] = [ col('.'),     line('.'), bufnr('%') ]
     let [ s:bufname, s:argidx, s:argc ]      = [ bufname('%'), argidx(),  argc() ]
 
-    let lists = [ { 'name': 'qfl', 'data': getqflist()},
-    \             { 'name': 'arg', 'data': map(range(argc()), { k,v -> argv(v) }) }
+    let lists = [ { 'name': 'qfl', 'entries': getqflist()},
+    \             { 'name': 'arg', 'entries': map(range(argc()), { k,v -> argv(v) }) }
     \           ]
 
     for s:list in lists
-        if empty(s:list.data)
+        if empty(s:list.entries)
             continue
         endif
 
@@ -109,7 +109,7 @@ fu! statusline#list_position() abort "{{{2
         if len(info) < 2 | continue | endif
 
         let [ idx, size ] = [ info.idx, info.size ]
-        let s:cur_entry   = s:list.data[idx-1]
+        let s:cur_entry   = s:list.entries[idx-1]
 
         return ( s:is_in_list_and_current()()
         \?           {'qfl': 'C', 'arg': 'A'}[s:list.name]
