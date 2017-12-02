@@ -503,5 +503,5 @@ augroup my_statusline
     au Filetype               dirvish   setl stl=%!statusline#main(0)
 
     " show just the line number in a command line window
-    au CmdWinEnter           *          let &l:stl = ' %l'
+    au CmdWinEnter           *          let &l:stl = '%=%l           '
 augroup END
