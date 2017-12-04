@@ -42,11 +42,11 @@ fu! s:is_in_list_but_not_current() abort "{{{2
     return
     \      { 'qfl':
     \               { -> index(
-    \                     map(deepcopy(s:list.entries), { k,v -> [ v.bufnr, v.lnum, v.col ] }),
+    \                     map(deepcopy(s:list.entries), { i,v -> [ v.bufnr, v.lnum, v.col ] }),
     \                     [ s:cur_buf, s:cur_line, s:cur_col ]) >= 0
     \               },
     \
-    \        'arg': { -> index(map(range(s:argc), { k,v -> argv(v) }), s:bufname) >= 0 }
+    \        'arg': { -> index(map(range(s:argc), { i,v -> argv(v) }), s:bufname) >= 0 }
     \      }[ s:list.name ]
 endfu
 
@@ -94,7 +94,7 @@ fu! statusline#list_position() abort "{{{2
     let [ s:bufname, s:argidx, s:argc ]      = [ bufname('%'), argidx(),  argc() ]
 
     let lists = [ { 'name': 'qfl', 'entries': getqflist()},
-    \             { 'name': 'arg', 'entries': map(range(argc()), { k,v -> argv(v) }) }
+    \             { 'name': 'arg', 'entries': map(range(argc()), { i,v -> argv(v) }) }
     \           ]
 
     for s:list in lists
@@ -144,7 +144,7 @@ fu! statusline#main(has_focus) abort "{{{2
     endif
     return &l:buftype ==# 'quickfix'
     \?         "%{get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '}
-    \%{exists('w:quickfix_title')? ' '.w:quickfix_title : ''}
+    \%.80{exists('w:quickfix_title')? ' '.w:quickfix_title : ''}
     \ %=%-15(%l/%L%) %4p%% "
     \
     \:          '%{statusline#list_position()}'
