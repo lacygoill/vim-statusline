@@ -98,11 +98,11 @@ fu! statusline#list_position() abort "{{{2
     \           ]
 
     for s:list in lists
-        " if a list is empty (qfl or arg), or if the current list (`s:list`) is the qfl
-        " but we're interested in the arglist (`g:my_stl_list_position == 2`), then
-        " jump to the next iteration of the loop
+        " if a list is empty (qfl or  arg), or if the current list (`s:list`) is
+        " the qfl  but we're interested in  the arglist (`g:my_stl_list_position
+        " == 2`), then jump to the next iteration of the loop
         if  empty(s:list.entries)
-        \|| g:my_stl_list_position == 2 && s:list.name ==# 'qfl'
+        \|| s:list.name ==# 'qfl' && g:my_stl_list_position == 2
             continue
         endif
 
