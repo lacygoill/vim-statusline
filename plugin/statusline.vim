@@ -106,7 +106,7 @@ fu! statusline#list_position() abort "{{{2
             continue
         endif
 
-        let info = { 'qfl':  getqflist({ 'idx': 1,         'size': 1      }),
+        let info = { 'qfl':  getqflist({ 'idx': 0,         'size': 0      }),
                  \   'arg':            { 'idx':  argidx(), 'size': argc() },
                  \ }[s:list.name]
 
