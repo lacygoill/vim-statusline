@@ -93,38 +93,30 @@ fu! statusline#list_position() abort "{{{2
     let [ s:cur_col, s:cur_line, s:cur_buf ] = [ col('.'),     line('.'), bufnr('%') ]
     let [ s:bufname, s:argidx, s:argc ]      = [ bufname('%'), argidx(),  argc() ]
 
-    let lists = [ { 'name': 'qfl', 'entries': getqflist()},
-    \             { 'name': 'arg', 'entries': map(range(argc()), { i,v -> argv(v) }) }
-    \           ]
+    let s:list = [ { 'name': 'qfl', 'entries': getqflist()},
+    \              { 'name': 'arg', 'entries': map(range(argc()), { i,v -> argv(v) }) }
+    \            ][g:my_stl_list_position-1]
 
-    for s:list in lists
-        " if a list is empty (qfl or  arg), or if the current list (`s:list`) is
-        " the qfl  but we're interested in  the arglist (`g:my_stl_list_position
-        " == 2`), then jump to the next iteration of the loop
-        if  empty(s:list.entries)
-        \|| s:list.name ==# 'qfl' && g:my_stl_list_position == 2
-            continue
-        endif
+    if empty(s:list.entries)
+        return '[]'
+    endif
 
-        let info = { 'qfl':  getqflist({ 'idx': 0,         'size': 0      }),
-                 \   'arg':            { 'idx':  argidx(), 'size': argc() },
-                 \ }[s:list.name]
+    let info = { 'qfl':  getqflist({ 'idx': 0,         'size': 0      }),
+    \   'arg':            { 'idx':  argidx(), 'size': argc() },
+    \ }[s:list.name]
 
-        if len(info) < 2 | continue | endif
+    if len(info) < 2 | continue | endif
 
-        let [ idx, size ] = [ info.idx, info.size ]
-        let s:cur_entry   = s:list.entries[idx-1]
+    let [ idx, size ] = [ info.idx, info.size ]
+    let s:cur_entry   = s:list.entries[idx-1]
 
-        return ( s:is_in_list_and_current()()
-        \?           {'qfl': 'C', 'arg': 'A'}[s:list.name]
-        \:       s:is_in_list_but_not_current()()
-        \?           {'qfl': 'c', 'arg': 'a'}[s:list.name]
-        \:           {'qfl': 'ȼ', 'arg': 'ā'}[s:list.name]
-        \      )
-        \      .'['.(idx + (s:list.name ==# 'arg' ? 1 : 0)).'/'.size.']'
-    endfor
-
-    return '[]'
+    return ( s:is_in_list_and_current()()
+    \?           {'qfl': 'C', 'arg': 'A'}[s:list.name]
+    \:       s:is_in_list_but_not_current()()
+    \?           {'qfl': 'c', 'arg': 'a'}[s:list.name]
+    \:           {'qfl': 'ȼ', 'arg': 'ā'}[s:list.name]
+    \      )
+    \      .'['.(idx + (s:list.name ==# 'arg' ? 1 : 0)).'/'.size.']'
 endfu
 
 " This function displays an item showing our position in the qfl or arglist.
