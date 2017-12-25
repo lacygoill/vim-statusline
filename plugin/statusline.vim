@@ -133,20 +133,23 @@ endfu
 
 fu! statusline#main(has_focus) abort "{{{2
     if !a:has_focus
-        return ' %1*%{statusline#tail_of_path()}%* %w%=%-22(%{
-        \         &ft ==# "qf"
-        \         ?     line(".")."/".line("$")
-        \         :     ""}%)'
+        return ' %1*%{statusline#tail_of_path()}%* %w%='
+        \     .'%-22(%{
+        \                &bt ==# "qf"
+        \                ?     line(".")."/".line("$")
+        \                :     ""
+        \             }%)'
     endif
-    return &l:buftype ==# 'quickfix'
-    \?         "%{get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '}
-    \%.80{exists('w:quickfix_title')? '  '.w:quickfix_title : ''}
-    \ %=%-15(%l/%L%) %4p%% "
+
+    return &bt ==# 'quickfix'
+    \?         "%{get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '}"
+    \         ."%.80{exists('w:quickfix_title')? '  '.w:quickfix_title : ''}"
+    \         ."%=%-15(%l/%L%) %4p%% "
     \
     \:          '%{statusline#list_position()}'
     \          .' %1*%{statusline#tail_of_path()}%* '
     \          .'%-5r%-10w'
-    \          .'%2*%{&modified && &buftype !=? "terminal" ? "[+]" : ""}%*'
+    \          .'%2*%{&modified && &bt !=? "terminal" ? "[+]" : ""}%*'
     \          .'%='
     \          .'%-5{&ve ==# "all" ? "[ve]" : ""}'
     \          .'%-7{exists("*capslock#status") ? capslock#status() : ""}'
@@ -191,17 +194,17 @@ endfu
 " expression, but not in the first:
 "
 "         if !has_focus
-"             return '…'.(&l:buftype ==# 'quickfix' ? '…' : '')    ✘
+"             return '…'.(&bt ==# 'quickfix' ? '…' : '')    ✘
 "         endif
-"         return &l:buftype ==# 'quickfix'                         ✔
+"         return &bt ==# 'quickfix'                         ✔
 "         ?…
 "         :…
 "
 "
 "         if !has_focus
-"             return '…%{&l:buftype ==# 'quickfix' ? "…" : ""}'    ✔
+"             return '…%{&bt ==# 'quickfix' ? "…" : ""}'    ✔
 "         endif
-"         return &l:buftype ==# 'quickfix'                         ✔
+"         return &bt ==# 'quickfix'                         ✔
 "         ?…
 "         :…
 "}}}
@@ -396,11 +399,11 @@ fu! statusline#tabpage_label(n) abort "{{{2
     "
     "         get(get(getwininfo(win_getid(winnr, a:n)), 0, {}), 'loclist', 0)
 
-    return getbufvar(bufnr, '&buftype', '') ==# 'terminal'
+    return getbufvar(bufnr, '&bt', '') ==# 'terminal'
     \?         '[term]'
     \:     name[-1:] ==# '/'
     \?         fnamemodify(name, ':h:t').'/'
-    \:     getbufvar(bufnr, '&buftype') ==# 'quickfix'
+    \:     getbufvar(bufnr, '&bt') ==# 'quickfix'
     \?         getbufvar(bufnr, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
     \:     empty(name)
     \?         "\u2205"
@@ -410,11 +413,11 @@ endfu
 fu! statusline#tail_of_path() abort "{{{2
     let tail = fnamemodify(expand('%:p'), ':t')
 
-    return &buftype ==# 'terminal'
+    return &bt ==# 'terminal'
     \?         '[term]'
     \:     &filetype ==# 'dirvish'
     \?         '[dirvish]'
-    \:     &l:buftype ==# 'quickfix'
+    \:     &bt ==# 'quickfix'
     \?         get(b:, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
     \:     tail == ''
     \?         '[No Name]'
@@ -424,9 +427,9 @@ endfu
 " The following comment is kept for educational purpose, but no longer relevant.{{{
 " It applied to a different expression than the one currently used. Sth like:
 "
-"         return &buftype   !=# 'terminal'
+"         return &bt   !=# 'terminal'
 "         \?     &filetype  !=# 'dirvish'
-"         \?     &l:buftype !=# 'quickfix'
+"         \?     &bt !=# 'quickfix'
 "         \?     tail != ''
 "         \?         tail
 "         \:         '[No Name]'
@@ -439,7 +442,7 @@ endfu
 "     • pair the tests and the values as if they were an imbrication of parentheses
 "
 "     Example:
-"             1st test    =    &buftype !=# 'terminal'
+"             1st test    =    &bt !=# 'terminal'
 "             last value  =    [term]
 "
 "             2nd test           =    &filetype !=# 'dirvish'
