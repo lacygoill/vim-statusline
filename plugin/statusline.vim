@@ -225,7 +225,7 @@ endfu
 " The solution is to use the `%{}` item, because the expression inside the curly
 " braces  is evaluated  in the  context of  the window  to which  the statusline
 " belongs.
-"}}}
+
 " %(%) {{{3
 "
 " Useful to set the desired width / justification of a group of items.
