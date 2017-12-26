@@ -160,7 +160,7 @@ endfu
 
 " This function can be called when we enter a window, or when we leave one.
 
-" Treat a qf buffer separately.{{{
+" Treat a qf buffer separately.{{{3
 "
 " For a qf buffer, the default local value of 'stl' can be found here:
 "         $VIMRUNTIME/ftplugin/qf.vim
@@ -168,8 +168,8 @@ endfu
 " It's important  to treat it  separately, because  our default value  for 'stl'
 " wouldn't give us much information in a qf window. In particular, we would miss
 " its title.
-"}}}
-" Do NOT assume that the expression for non-focused windows will be evaluated only in the window you leave. {{{
+
+" Do NOT assume that the expression for non-focused windows will be evaluated only in the window you leave. {{{3
 "
 " `main(1)` will be evaluated only for the window to which we give the focus.
 " But `main(0)` will be evaluated for ANY window which doesn't have the focus.
@@ -207,7 +207,7 @@ endfu
 "         return &bt ==# 'quickfix'                         ✔
 "         ?…
 "         :…
-"}}}
+
 " %m {{{3
 
 "     %m                                ✘
@@ -225,8 +225,8 @@ endfu
 " The solution is to use the `%{}` item, because the expression inside the curly
 " braces  is evaluated  in the  context of  the window  to which  the statusline
 " belongs.
-
-" `%(%)` {{{3
+"}}}
+" %(%) {{{3
 "
 " Useful to set the desired width / justification of a group of items.
 "
@@ -251,27 +251,7 @@ endfu
 "
 "     ) - End of item group.    No width fields allowed.
 
-" various items "{{{3
-
-"     ┌────────────────────────────────┬─────────────────────────────────────────────────────┐
-"     │ %1*%t%*                        │ switch to HG User1, add filename, reset HG          │
-"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"     │ %2*%{&modified ? "[+]" : ""}%* │ switch to HG User2, add flag modified [+], reset HG │
-"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"     │ %r%w                           │ flags: read-only [RO], preview window [Preview]     │
-"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"     │ %=                             │ right-align next items                              │
-"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"     │ %{&ve ==# "all" ? "[ve]" : ""} │ flag for 'virtualedit'                              │
-"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"     │ %l                             │ line nr                                             │
-"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"     │ %v                             │ virtual column nr                                   │
-"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"     │ %p%%                           │ percentage of read lines                            │
-"     └────────────────────────────────┴─────────────────────────────────────────────────────┘
-
-" `-42` field {{{3
+" -42  field {{{3
 
 " Set the width of a field to 42 cells.
 "
@@ -291,7 +271,7 @@ endfu
 " space will be added; and the left-justifcation  will cause it to appear at the
 " end (instead of the beginning).
 
-" `.42` field {{{3
+" .42  field {{{3
 
 " Limit the width of an item to 42 cells:
 "
@@ -308,6 +288,26 @@ endfu
 "         • a '<' on the left for text items
 "         • a '>' on the right for numeric items (only `maxwid - 2` digits are kept)
 "           the number after '>' stands for how many digits are missing
+
+" various items {{{3
+
+"     ┌────────────────────────────────┬─────────────────────────────────────────────────────┐
+"     │ %1*%t%*                        │ switch to HG User1, add filename, reset HG          │
+"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
+"     │ %2*%{&modified ? "[+]" : ""}%* │ switch to HG User2, add flag modified [+], reset HG │
+"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
+"     │ %r%w                           │ flags: read-only [RO], preview window [Preview]     │
+"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
+"     │ %=                             │ right-align next items                              │
+"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
+"     │ %{&ve ==# "all" ? "[ve]" : ""} │ flag for 'virtualedit'                              │
+"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
+"     │ %l                             │ line nr                                             │
+"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
+"     │ %v                             │ virtual column nr                                   │
+"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
+"     │ %p%%                           │ percentage of read lines                            │
+"     └────────────────────────────────┴─────────────────────────────────────────────────────┘
 
 fu! statusline#tabline() abort "{{{2
     let s = ''
