@@ -18,6 +18,13 @@ let g:loaded_statusline = 1
 " For inspiration, study `vim-flagship` first.
 
 " Functions {{{1
+fu! statusline#fugitive() abort "{{{2
+    if !get(g:, 'my_fugitive_branch', 0)
+        return ''
+    endif
+    return exists('*fugitive#statusline') ? fugitive#statusline() : ''
+endfu
+
 fu! s:is_in_list_and_current() abort "{{{2
     return
     \      { 'qfl':
@@ -154,7 +161,7 @@ fu! statusline#main(has_focus) abort "{{{2
     \          .'%-5{&ve ==# "all" ? "[ve]" : ""}'
     \          .'%-7{exists("*capslock#status") ? capslock#status() : ""}'
     \          .'%-5{exists("*session#status")  ? session#status()  : ""}'
-    \          .'%-15{exists("*fugitive#statusline")  ? fugitive#statusline()  : ""}'
+    \          .'%-15{statusline#fugitive()}'
     \          .'%-8(%.5l,%.3v%)'
     \          .'%4p%% '
 endfu
