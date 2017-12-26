@@ -154,6 +154,7 @@ fu! statusline#main(has_focus) abort "{{{2
     \          .'%-5{&ve ==# "all" ? "[ve]" : ""}'
     \          .'%-7{exists("*capslock#status") ? capslock#status() : ""}'
     \          .'%-5{exists("*session#status")  ? session#status()  : ""}'
+    \          .'%-15{exists("*fugitive#statusline")  ? fugitive#statusline()  : ""}'
     \          .'%-8(%.5l,%.3v%)'
     \          .'%4p%% '
 endfu
