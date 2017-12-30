@@ -501,7 +501,12 @@ set tabline=%!statusline#tabline()
 augroup my_statusline
     au!
 
-    au BufWinEnter,WinEnter   *         setl stl=%!statusline#main(1)
+    au BufWinEnter,WinEnter   *         if &ft !=# 'freekeys'
+    \|                                      setl stl=%!statusline#main(1)
+    \|                                  else
+    \|                                      setl stl=%=%-5l
+    \|                                  endif
+
     au WinLeave               *         setl stl=%!statusline#main(0)
 
     " needed for  a man / dirvish  buffer, because no WinEnter  / BufWinEnter is
@@ -509,6 +514,6 @@ augroup my_statusline
     au Filetype               man       setl stl=%!statusline#main(1)
     au Filetype               dirvish   setl stl=%!statusline#main(0)
 
-    " show just the line number in a command line window
-    au CmdWinEnter           *          let &l:stl = '%=%-13l'
+    " show just the line number in a command line window, or in a `freekeys` buffer
+    au CmdWinEnter            *         let &l:stl = '%=%-13l'
 augroup END
