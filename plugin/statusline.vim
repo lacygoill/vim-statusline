@@ -151,7 +151,7 @@ fu! statusline#main(has_focus) abort "{{{2
     return &bt ==# 'quickfix'
     \?         "%{get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '}"
     \         ."%.80{exists('w:quickfix_title')? '  '.w:quickfix_title : ''}"
-    \         ."%=%-15(%l/%L%) %4p%% "
+    \         ."%=    %-15(%l/%L%) %4p%% "
     \
     \:          '%{statusline#list_position()}'
     \          .' %1*%{statusline#tail_of_path()}%* '
