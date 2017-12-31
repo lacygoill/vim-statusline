@@ -148,10 +148,13 @@ fu! statusline#main(has_focus) abort "{{{2
         \             }%)'
     endif
 
-    return &bt ==# 'quickfix'
-    \?         "%{get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '}"
+    return  &bt ==# 'quickfix'
+    \?     (get(w:, 'quickfix_title', '') =~# '\<TOC$'
+    \?          ''
+    \:          (get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '))
+    \
     \         ."%.80{exists('w:quickfix_title')? '  '.w:quickfix_title : ''}"
-    \         ."%=    %-15(%l/%L%) %4p%% "
+    \         ."%=    %-15(%l/%L%) "
     \
     \:          '%{statusline#list_position()}'
     \          .' %1*%{statusline#tail_of_path()}%* '
