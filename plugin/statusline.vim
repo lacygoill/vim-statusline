@@ -501,11 +501,7 @@ set tabline=%!statusline#tabline()
 augroup my_statusline
     au!
 
-    au BufWinEnter,WinEnter   *         if &ft !=# 'freekeys'
-    \|                                      setl stl=%!statusline#main(1)
-    \|                                  else
-    \|                                      setl stl=%=%-5l
-    \|                                  endif
+    au BufWinEnter,WinEnter   *         let &l:stl = &ft !=# 'freekeys' ? '%!statusline#main(1)' : '%=%-5l'
 
     au WinLeave               *         setl stl=%!statusline#main(0)
 
