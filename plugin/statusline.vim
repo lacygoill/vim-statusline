@@ -148,7 +148,9 @@ fu! statusline#main(has_focus) abort "{{{2
         \             }%)'
     endif
 
-    return  &bt ==# 'quickfix'
+    return &ft ==# 'freekeys'
+    \?         '%=%-5l'
+    \:     &bt ==# 'quickfix'
     \?     (get(w:, 'quickfix_title', '') =~# '\<TOC$'
     \?          ''
     \:          (get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '))
@@ -504,8 +506,7 @@ set tabline=%!statusline#tabline()
 augroup my_statusline
     au!
 
-    au BufWinEnter,WinEnter   *         let &l:stl = &ft !=# 'freekeys' ? '%!statusline#main(1)' : '%=%-5l'
-
+    au BufWinEnter,WinEnter   *         setl stl=%!statusline#main(1)
     au WinLeave               *         setl stl=%!statusline#main(0)
 
     " needed for  a man / dirvish  buffer, because no WinEnter  / BufWinEnter is
