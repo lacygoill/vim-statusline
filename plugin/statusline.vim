@@ -108,11 +108,13 @@ fu! statusline#list_position() abort "{{{2
         return '[]'
     endif
 
-    let info = { 'qfl':  getqflist({ 'idx': 0,         'size': 0      }),
-    \   'arg':            { 'idx':  argidx(), 'size': argc() },
+    let info = { 'qfl': has('nvim')
+    \                   ?    {'idx': get(getqflist({'nr': 0}), 'nr', 0), 'size': len(getqflist())}
+    \                   :    getqflist({ 'idx':  0, 'size': 0 }),
+    \            'arg': { 'idx':  argidx(), 'size': argc() },
     \ }[s:list.name]
 
-    if len(info) < 2 | continue | endif
+    if len(info) < 2 | return '[]' | endif
 
     let [ idx, size ] = [ info.idx, info.size ]
     let s:cur_entry   = s:list.entries[idx-1]
@@ -134,9 +136,9 @@ endfu
 "
 " And/or use mappings, such as:
 "
-"         nno <silent> [oi :let g:my_stl_list_position = 1<cr>
-"         nno <silent> ]oi :let g:my_stl_list_position = 0<cr>
-"         nno <silent> coi :let g:my_stl_list_position = !get(g:, 'my_stl_list_position', 0)<cr>
+"         nno  <silent>  [oi  :let g:my_stl_list_position = 1<cr>
+"         nno  <silent>  ]oi  :let g:my_stl_list_position = 0<cr>
+"         nno  <silent>  coi  :let g:my_stl_list_position = !get(g:, 'my_stl_list_position', 0)<cr>
 
 fu! statusline#main(has_focus) abort "{{{2
     if !a:has_focus
