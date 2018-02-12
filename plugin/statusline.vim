@@ -163,7 +163,7 @@ fu! statusline#main(has_focus) abort "{{{2
     \:          '%{statusline#list_position()}'
     \          .' %1*%{statusline#tail_of_path()}%* '
     \          .'%-5r%-10w'
-    \          .'%2*%{&modified && &bt !=? "terminal" ? "[+]" : ""}%*'
+    \          .'%2*%{&modified && &bt isnot# "terminal" ? "[+]" : ""}%*'
     \          .'%='
     \          .'%-5{&ve is# "all" ? "[ve]" : ""}'
     \          .'%-7{exists("*capslock#status") ? capslock#status() : ""}'
@@ -442,10 +442,10 @@ endfu
 " The following comment is kept for educational purpose, but no longer relevant.{{{
 " It applied to a different expression than the one currently used. Sth like:
 "
-"         return &bt   !=# 'terminal'
-"         \?     &filetype  !=# 'dirvish'
-"         \?     &bt !=# 'quickfix'
-"         \?     tail != ''
+"         return &bt  isnot#  'terminal'
+"         \?     &ft  isnot#  'dirvish'
+"         \?     &bt  isnot#  'quickfix'
+"         \?     tail isnot# ''
 "         \?         tail
 "         \:         '[No Name]'
 "         \:         b:qf_is_loclist ? '[LL]' : '[QF]'
@@ -457,10 +457,10 @@ endfu
 "     • pair the tests and the values as if they were an imbrication of parentheses
 "
 "     Example:
-"             1st test    =    &bt !=# 'terminal'
+"             1st test    =    &bt isnot# 'terminal'
 "             last value  =    [term]
 "
-"             2nd test           =    &filetype !=# 'dirvish'
+"             2nd test           =    &filetype isnot# 'dirvish'
 "             penultimate value  =    [dirvish]
 "
 "             …
