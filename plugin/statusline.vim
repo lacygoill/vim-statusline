@@ -29,16 +29,16 @@ fu! s:is_in_list_and_current() abort "{{{2
     return
     \      { 'qfl':
     \               { ->
-    \                       [ s:cur_buf,         s:cur_line,       s:cur_col ]
-    \                    == [ s:cur_entry.bufnr, s:cur_entry.lnum, s:cur_entry.col ]
+    \                        [ s:cur_buf,         s:cur_line,       s:cur_col ]
+    \                    ==# [ s:cur_entry.bufnr, s:cur_entry.lnum, s:cur_entry.col ]
     \                ||
-    \                       [ s:cur_buf,         s:cur_line       ]
-    \                    == [ s:cur_entry.bufnr, s:cur_entry.lnum ]
-    \                    && s:cur_entry.col == 0
+    \                        [ s:cur_buf,         s:cur_line       ]
+    \                    ==# [ s:cur_entry.bufnr, s:cur_entry.lnum ]
+    \                    &&    s:cur_entry.col ==# 0
     \                ||
-    \                       s:cur_buf
-    \                    == s:cur_entry.bufnr
-    \                    && [ s:cur_entry.lnum, s:cur_entry.col ] == [ 0, 0 ]
+    \                         s:cur_buf
+    \                    ==#  s:cur_entry.bufnr
+    \                    && [ s:cur_entry.lnum, s:cur_entry.col ] ==# [ 0, 0 ]
     \               },
     \
     \        'arg': { -> s:bufname ==# argv(s:argidx) }
@@ -80,7 +80,7 @@ fu! statusline#list_position() abort "{{{2
     " Reproduce:
     "
     "         fu! Func()
-    "             let l:Test = { -> foo + bar == 3 }
+    "             let l:Test = { -> foo + bar ==# 3 }
     "             let foo  = 1
     "             let bar  = 2
     "             return l:Test()
@@ -90,7 +90,7 @@ fu! statusline#list_position() abort "{{{2
     "
     "         fu! Func()
     "             let foo  = 1
-    "             let l:Test = { -> foo + bar == 3 }
+    "             let l:Test = { -> foo + bar ==# 3 }
     "             let bar  = 2
     "             return l:Test()
     "         endfu
@@ -329,7 +329,7 @@ fu! statusline#tabline() abort "{{{2
     for i in range(1, tabpagenr('$'))
         " color the label of the current tab page with the HG TabLineSel
         " the others with TabLine
-        let s .= i == tabpagenr() ? '%#TabLineSel#' : '%#TabLine#'
+        let s .= i ==# tabpagenr() ? '%#TabLineSel#' : '%#TabLine#'
 
         " set the tab page nr
         " used by the mouse to recognize the tab page on which we click
