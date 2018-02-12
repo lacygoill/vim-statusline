@@ -125,7 +125,7 @@ fu! statusline#list_position() abort "{{{2
     \?           {'qfl': 'c', 'arg': 'a'}[s:list.name]
     \:           {'qfl': 'ȼ', 'arg': 'ā'}[s:list.name]
     \      )
-    \      .'['.(idx + (s:list.name ==# 'arg' ? 1 : 0)).'/'.size.']'
+    \      .'['.(idx + (s:list.name is# 'arg' ? 1 : 0)).'/'.size.']'
 endfu
 
 " This function displays an item showing our position in the qfl or arglist.
@@ -144,15 +144,15 @@ fu! statusline#main(has_focus) abort "{{{2
     if !a:has_focus
         return ' %1*%{statusline#tail_of_path()}%* %w%='
         \     .'%-22(%{
-        \                &bt ==# "qf"
+        \                &bt is# "qf"
         \                ?     line(".")."/".line("$")
         \                :     ""
         \             }%)'
     endif
 
-    return &ft ==# 'freekeys'
+    return &ft is# 'freekeys'
     \?         '%=%-5l'
-    \:     &bt ==# 'quickfix'
+    \:     &bt is# 'quickfix'
     \?     (get(w:, 'quickfix_title', '') =~# '\<TOC$'
     \?          ''
     \:          (get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '))
@@ -165,7 +165,7 @@ fu! statusline#main(has_focus) abort "{{{2
     \          .'%-5r%-10w'
     \          .'%2*%{&modified && &bt !=? "terminal" ? "[+]" : ""}%*'
     \          .'%='
-    \          .'%-5{&ve ==# "all" ? "[ve]" : ""}'
+    \          .'%-5{&ve is# "all" ? "[ve]" : ""}'
     \          .'%-7{exists("*capslock#status") ? capslock#status() : ""}'
     \          .'%-5{exists("*session#status")  ? session#status()  : ""}'
     \          .'%-15{statusline#fugitive()}'
@@ -209,17 +209,17 @@ endfu
 " expression, but not in the first:
 "
 "         if !has_focus
-"             return '…'.(&bt ==# 'quickfix' ? '…' : '')    ✘
+"             return '…'.(&bt is# 'quickfix' ? '…' : '')    ✘
 "         endif
-"         return &bt ==# 'quickfix'                         ✔
+"         return &bt is# 'quickfix'                         ✔
 "         ?…
 "         :…
 "
 "
 "         if !has_focus
-"             return '…%{&bt ==# 'quickfix' ? "…" : ""}'    ✔
+"             return '…%{&bt is# 'quickfix' ? "…" : ""}'    ✔
 "         endif
-"         return &bt ==# 'quickfix'                         ✔
+"         return &bt is# 'quickfix'                         ✔
 "         ?…
 "         :…
 
@@ -315,7 +315,7 @@ endfu
 "     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
 "     │ %=                             │ right-align next items                              │
 "     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"     │ %{&ve ==# "all" ? "[ve]" : ""} │ flag for 'virtualedit'                              │
+"     │ %{&ve is# "all" ? "[ve]" : ""} │ flag for 'virtualedit'                              │
 "     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
 "     │ %l                             │ line nr                                             │
 "     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
@@ -414,11 +414,11 @@ fu! statusline#tabpage_label(n) abort "{{{2
     "
     "         get(get(getwininfo(win_getid(winnr, a:n)), 0, {}), 'loclist', 0)
 
-    return getbufvar(bufnr, '&bt', '') ==# 'terminal'
+    return getbufvar(bufnr, '&bt', '') is# 'terminal'
     \?         '[term]'
-    \:     name[-1:] ==# '/'
+    \:     name[-1:] is# '/'
     \?         fnamemodify(name, ':h:t').'/'
-    \:     getbufvar(bufnr, '&bt') ==# 'quickfix'
+    \:     getbufvar(bufnr, '&bt') is# 'quickfix'
     \?         getbufvar(bufnr, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
     \:     empty(name)
     \?         "\u2205"
@@ -428,13 +428,13 @@ endfu
 fu! statusline#tail_of_path() abort "{{{2
     let tail = fnamemodify(expand('%:p'), ':t')
 
-    return &bt ==# 'terminal'
+    return &bt is# 'terminal'
     \?         '[term]'
-    \:     &filetype ==# 'dirvish'
+    \:     &ft is# 'dirvish'
     \?         '[dirvish]'
-    \:     &bt ==# 'quickfix'
+    \:     &bt is# 'quickfix'
     \?         get(b:, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
-    \:     tail == ''
+    \:     tail is# ''
     \?         '[No Name]'
     \:         tail
 endfu
