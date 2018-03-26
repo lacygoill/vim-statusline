@@ -120,12 +120,12 @@ fu! statusline#list_position() abort "{{{2
     let s:cur_entry   = s:list.entries[idx-1]
 
     return ( s:is_in_list_and_current()()
-    \?           {'qfl': 'C', 'arg': 'A'}[s:list.name]
-    \:       s:is_in_list_but_not_current()()
-    \?           {'qfl': 'c', 'arg': 'a'}[s:list.name]
-    \:           {'qfl': 'ȼ', 'arg': 'ā'}[s:list.name]
-    \      )
-    \      .'['.(idx + (s:list.name is# 'arg' ? 1 : 0)).'/'.size.']'
+       \ ?       {'qfl': 'C', 'arg': 'A'}[s:list.name]
+       \ :   s:is_in_list_but_not_current()()
+       \ ?       {'qfl': 'c', 'arg': 'a'}[s:list.name]
+       \ :       {'qfl': 'ȼ', 'arg': 'ā'}[s:list.name]
+       \   )
+       \   .'['.(idx + (s:list.name is# 'arg' ? 1 : 0)).'/'.size.']'
 endfu
 
 " This function displays an item showing our position in the qfl or arglist.
@@ -151,26 +151,26 @@ fu! statusline#main(has_focus) abort "{{{2
     endif
 
     return &ft is# 'freekeys'
-    \?         '%=%-5l'
-    \:     &bt is# 'quickfix'
-    \?     (get(w:, 'quickfix_title', '') =~# '\<TOC$'
-    \?          ''
-    \:          (get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '))
-    \
-    \         ."%.80{exists('w:quickfix_title')? '  '.w:quickfix_title : ''}"
-    \         ."%=    %-15(%l/%L%) "
-    \
-    \:          '%{statusline#list_position()}'
-    \          .' %1*%{statusline#tail_of_path()}%* '
-    \          .'%-5r%-10w'
-    \          .'%2*%{&modified && &bt isnot# "terminal" ? "[+]" : ""}%*'
-    \          .'%='
-    \          .'%-5{&ve is# "all" ? "[ve]" : ""}'
-    \          .'%-7{exists("*capslock#status") ? capslock#status() : ""}'
-    \          .'%-5{exists("*session#status")  ? session#status()  : ""}'
-    \          .'%-15{statusline#fugitive()}'
-    \          .'%-8(%.5l,%.3v%)'
-    \          .'%4p%% '
+       \ ?     '%=%-5l'
+       \ : &bt is# 'quickfix'
+       \ ? (get(w:, 'quickfix_title', '') =~# '\<TOC$'
+       \ ?      ''
+       \ :      (get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '))
+       \
+       \      ."%.80{exists('w:quickfix_title')? '  '.w:quickfix_title : ''}"
+       \      ."%=    %-15(%l/%L%) "
+       \
+       \ :      '%{statusline#list_position()}'
+       \       .' %1*%{statusline#tail_of_path()}%* '
+       \       .'%-5r%-10w'
+       \       .'%2*%{&modified && &bt isnot# "terminal" ? "[+]" : ""}%*'
+       \       .'%='
+       \       .'%-5{&ve is# "all" ? "[ve]" : ""}'
+       \       .'%-7{exists("*capslock#status") ? capslock#status() : ""}'
+       \       .'%-5{exists("*session#status")  ? session#status()  : ""}'
+       \       .'%-15{statusline#fugitive()}'
+       \       .'%-8(%.5l,%.3v%)'
+       \       .'%4p%% '
 endfu
 
 " This function can be called when we enter a window, or when we leave one.
@@ -415,42 +415,42 @@ fu! statusline#tabpage_label(n) abort "{{{2
     "         get(get(getwininfo(win_getid(winnr, a:n)), 0, {}), 'loclist', 0)
 
     return getbufvar(bufnr, '&bt', '') is# 'terminal'
-    \?         '[term]'
-    \:     name[-1:] is# '/'
-    \?         fnamemodify(name, ':h:t').'/'
-    \:     getbufvar(bufnr, '&bt') is# 'quickfix'
-    \?         getbufvar(bufnr, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
-    \:     empty(name)
-    \?         "\u2205"
-    \:         fnamemodify(name, ':t')
+       \ ?     '[term]'
+       \ : name[-1:] is# '/'
+       \ ?     fnamemodify(name, ':h:t').'/'
+       \ : getbufvar(bufnr, '&bt') is# 'quickfix'
+       \ ?     getbufvar(bufnr, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
+       \ : empty(name)
+       \ ?     "\u2205"
+       \ :     fnamemodify(name, ':t')
 endfu
 
 fu! statusline#tail_of_path() abort "{{{2
     let tail = fnamemodify(expand('%:p'), ':t')
 
     return &bt is# 'terminal'
-    \?         '[term]'
-    \:     &ft is# 'dirvish'
-    \?         '[dirvish]'
-    \:     &bt is# 'quickfix'
-    \?         get(b:, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
-    \:     tail is# ''
-    \?         '[No Name]'
-    \:         tail
+       \ ?     '[term]'
+       \ : &ft is# 'dirvish'
+       \ ?     '[dirvish]'
+       \ : &bt is# 'quickfix'
+       \ ?     get(b:, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
+       \ : tail is# ''
+       \ ?     '[No Name]'
+       \ :     tail
 endfu
 
 " The following comment is kept for educational purpose, but no longer relevant.{{{
 " It applied to a different expression than the one currently used. Sth like:
 "
 "         return &bt  isnot#  'terminal'
-"         \?     &ft  isnot#  'dirvish'
-"         \?     &bt  isnot#  'quickfix'
-"         \?     tail isnot# ''
-"         \?         tail
-"         \:         '[No Name]'
-"         \:         b:qf_is_loclist ? '[LL]' : '[QF]'
-"         \:         '[dirvish]'
-"         \:         '[term]'
+"            \ ? &ft  isnot#  'dirvish'
+"            \ ? &bt  isnot#  'quickfix'
+"            \ ? tail isnot# ''
+"            \ ?     tail
+"            \ :     '[No Name]'
+"            \ :     b:qf_is_loclist ? '[LL]' : '[QF]'
+"            \ :     '[dirvish]'
+"            \ :     '[term]'
 "}}}
 " How to read the returned expression:{{{
 "
