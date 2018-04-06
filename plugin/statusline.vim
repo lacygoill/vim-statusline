@@ -152,6 +152,8 @@ fu! statusline#main(has_focus) abort "{{{2
 
     return &ft is# 'freekeys'
        \ ?     '%=%-5l'
+       \ : &ft is# 'tree'
+       \ ?     ' :Tree%=%-8(%l,%c%)'
        \ : &bt is# 'quickfix'
        \ ? (get(w:, 'quickfix_title', '') =~# '\<TOC$'
        \ ?      ''
@@ -516,6 +518,6 @@ augroup my_statusline
     au Filetype               man       setl stl=%!statusline#main(1)
     au Filetype               dirvish   setl stl=%!statusline#main(0)
 
-    " show just the line number in a command line window, or in a `freekeys` buffer
+    " show just the line number in a command line window
     au CmdWinEnter            *         let &l:stl = '%=%-13l'
 augroup END
