@@ -423,6 +423,8 @@ fu! statusline#tabpage_label(n) abort "{{{2
        \ ?     fnamemodify(name, ':h:t').'/'
        \ : getbufvar(bufnr, '&bt') is# 'quickfix'
        \ ?     getbufvar(bufnr, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
+       \ : name =~# 'tree_viewer::$'
+       \ ?     '/'
        \ : empty(name)
        \ ?     "\u2205"
        \ :     fnamemodify(name, ':t')
