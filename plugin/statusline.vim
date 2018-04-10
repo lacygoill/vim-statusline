@@ -153,7 +153,8 @@ fu! statusline#main(has_focus) abort "{{{2
     return &ft is# 'freekeys'
        \ ?     '%=%-5l'
        \ : &ft is# 'tree'
-       \ ?     ' '.(expand('%:t') is# 'tree_viewer::' ? '' : expand('%:t')).'/%=%-8(%l,%c%) %p%% '
+       \ ?     ' '.(get(b:, 'curdir', '') is# '/' ? '/' : fnamemodify(get(b:, 'curdir', ''), ':t'))
+       \          .'%=%-8(%l,%c%) %p%% '
        \ : &bt is# 'quickfix'
        \ ? (get(w:, 'quickfix_title', '') =~# '\<TOC$'
        \ ?      ''
