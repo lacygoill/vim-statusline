@@ -424,7 +424,9 @@ fu! statusline#tabpage_label(n) abort "{{{2
        \ : getbufvar(bufnr, '&bt') is# 'quickfix'
        \ ?     getbufvar(bufnr, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
        \ : name =~# 'tree_viewer::$'
-       \ ?     '/'
+       \ ?     '└ /'
+       \ : name =~# 'tree_viewer::'
+       \ ?     '└ '.fnamemodify(name, ':t')
        \ : empty(name)
        \ ?     "\u2205"
        \ :     fnamemodify(name, ':t')
@@ -439,6 +441,8 @@ fu! statusline#tail_of_path() abort "{{{2
        \ ?     '[dirvish]'
        \ : &bt is# 'quickfix'
        \ ?     get(b:, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
+       \ : tail is# 'tree_viewer::'
+       \ ?     '/'
        \ : tail is# ''
        \ ?     '[No Name]'
        \ :     tail
