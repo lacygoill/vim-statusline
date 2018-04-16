@@ -166,7 +166,7 @@ fu! statusline#main(has_focus) abort "{{{2
        \ :      '%{statusline#list_position()}'
        \       .' %1*%{statusline#tail_of_path()}%* '
        \       .'%-5r%-10w'
-       \       .'%2*%{&modified && &bt isnot# "terminal" ? "[+]" : ""}%*'
+       \       .'%2*%{&modified && bufname("%") != "" && &bt isnot# "terminal" ? "[+]" : ""}%*'
        \       .'%='
        \       .'%-5{&ve is# "all" ? "[ve]" : ""}'
        \       .'%-7{exists("*capslock#status") ? capslock#status() : ""}'
