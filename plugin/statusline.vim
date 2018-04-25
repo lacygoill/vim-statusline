@@ -428,7 +428,7 @@ fu! statusline#tabpage_label(n) abort "{{{2
        \ : name =~# 'tree_viewer::'
        \ ?     '┗ '.fnamemodify(name, ':t')
        \ : empty(name)
-       \ ?     "\u2205"
+       \ ?     '∅'
        \ :     fnamemodify(name, ':t')
 endfu
 
