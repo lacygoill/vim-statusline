@@ -522,8 +522,7 @@ augroup my_statusline
 
     " needed for  a man / dirvish  buffer, because no WinEnter  / BufWinEnter is
     " fired right after their creation
-    au Filetype               man       setl stl=%!statusline#main(1)
-    au Filetype               dirvish   setl stl=%!statusline#main(0)
+    au Filetype    dirvish,man          setl stl=%!statusline#main(1)
 
     " show just the line number in a command line window
     au CmdWinEnter            *         let &l:stl = '%=%-13l'
