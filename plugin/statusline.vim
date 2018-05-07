@@ -517,13 +517,22 @@ set tabline=%!statusline#tabline()
 augroup my_statusline
     au!
 
-    au BufWinEnter,WinEnter   *         setl stl=%!statusline#main(1)
-    au WinLeave               *         setl stl=%!statusline#main(0)
+    au BufWinEnter,WinEnter  *  setl stl=%!statusline#main(1)
+    au WinLeave              *  setl stl=%!statusline#main(0)
 
-    " needed for  a man / dirvish  buffer, because no WinEnter  / BufWinEnter is
-    " fired right after their creation
-    au Filetype    dirvish,man          setl stl=%!statusline#main(1)
+    " Why?{{{
+    "
+    " Needed  for some  special buffers,  because no  WinEnter /  BufWinEnter is
+    " fired right after their creation.
+    "}}}
+    " But, isn't there a `(Buf)WinEnter` after populating the qfl and opening its window ?{{{
+    "
+    " Yes, but if  you close the window,  then later re-open it,  there'll be no
+    " `(Buf)WinEnter`. OTOH, there will be a `FileType`.
+    "}}}
+    au Filetype  dirvish,man,qf  setl stl=%!statusline#main(1)
 
     " show just the line number in a command line window
-    au CmdWinEnter            *         let &l:stl = '%=%-13l'
+    au CmdWinEnter  *  let &l:stl = '%=%-13l'
 augroup END
+
