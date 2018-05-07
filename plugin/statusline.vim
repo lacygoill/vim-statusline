@@ -3,6 +3,8 @@ if exists('g:loaded_statusline')
 endif
 let g:loaded_statusline = 1
 
+let s:MAX_QFL_SIZE = 999
+
 " TODO: {{{1
 
 " Read the following links to improve the statusline.
@@ -99,6 +101,14 @@ fu! statusline#list_position() abort "{{{2
     "         }}}
     let [ s:cur_col, s:cur_line, s:cur_buf ] = [ col('.'),     line('.'), bufnr('%') ]
     let [ s:bufname, s:argidx, s:argc ]      = [ bufname('%'), argidx(),  argc() ]
+
+    " FIXME:
+    " In Neovim, a qfl doesn't have a 'size' property.
+    " As a result, this test will always fail, and if the qfl is big, `getqflist()`
+    " will slow Vim down.
+    if g:my_stl_list_position ==# 1 && get(getqflist({'size': 0}), 'size', 0) > s:MAX_QFL_SIZE
+        return '[> '.s:MAX_QFL_SIZE.']'
+    endif
 
     let s:list = [ { 'name': 'qfl', 'entries': getqflist()},
     \              { 'name': 'arg', 'entries': map(range(argc()), { i,v -> argv(v) }) }
