@@ -165,7 +165,7 @@ fu! statusline#main(has_focus) abort "{{{2
     return &ft is# 'freekeys'
        \ ?     '%=%-5l'
        \ : &ft is# 'tree'
-       \ ?     ' '.(get(b:, 'curdir', '') is# '/' ? '/' : fnamemodify(get(b:, 'curdir', ''), ':t'))
+       \ ?     ' '.(get(b:, 'mirvish_curdir', '') is# '/' ? '/' : fnamemodify(get(b:, 'mirvish_curdir', ''), ':t'))
        \          .'%=%-8(%l,%c%) %p%% '
        \ : &bt is# 'quickfix'
        \ ? (get(w:, 'quickfix_title', '') =~# '\<TOC$'
