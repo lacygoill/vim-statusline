@@ -435,9 +435,9 @@ fu! statusline#tabpage_label(n) abort "{{{2
        \ ?     fnamemodify(name, ':h:t').'/'
        \ : getbufvar(bufnr, '&bt') is# 'quickfix'
        \ ?     getbufvar(bufnr, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
-       \ : name =~# 'tree_viewer::$'
+       \ : name =~# 'tree_explorer::$'
        \ ?     '┗ /'
-       \ : name =~# 'tree_viewer::'
+       \ : name =~# 'tree_explorer::'
        \ ?     '┗ '.fnamemodify(name, ':t')
        \ : empty(name)
        \ ?     '∅'
@@ -453,7 +453,7 @@ fu! statusline#tail_of_path() abort "{{{2
        \ ?     '[dirvish]'
        \ : &bt is# 'quickfix'
        \ ?     get(b:, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
-       \ : tail is# 'tree_viewer::'
+       \ : tail is# 'tree_explorer::'
        \ ?     '/'
        \ : tail is# ''
        \ ?     '[No Name]'
