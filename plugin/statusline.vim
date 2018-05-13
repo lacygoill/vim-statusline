@@ -154,7 +154,7 @@ endfu
 
 fu! statusline#main(has_focus) abort "{{{2
     if !a:has_focus
-        return ' %1*%{statusline#tail_of_path()}%* %w%='
+        return ' %1*%{statusline#tail_of_path()}%* %='
         \     .'%-22(%{
         \                &bt is# "qf"
         \                ?     line(".")."/".line("$")
