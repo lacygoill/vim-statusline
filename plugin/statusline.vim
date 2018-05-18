@@ -455,6 +455,8 @@ fu! statusline#tail_of_path() abort "{{{2
        \ ?     get(b:, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
        \ : tail is# 'tree_explorer::'
        \ ?     '/'
+       \ :  expand('%:p') =~# '^fugitive://'
+       \ ?     '[fgt]'
        \ : tail is# ''
        \ ?     '[No Name]'
        \ :     tail
