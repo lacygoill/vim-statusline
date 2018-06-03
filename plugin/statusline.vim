@@ -154,12 +154,14 @@ endfu
 
 fu! statusline#main(has_focus) abort "{{{2
     if !a:has_focus
-        return ' %1*%{statusline#tail_of_path()}%* %='
-        \     .'%-22(%{
-        \                &bt is# "qf"
-        \                ?     line(".")."/".line("$")
-        \                :     ""
-        \             }%)'
+        return ' %1*%{statusline#tail_of_path()}%* '
+        \     .'%='
+        \     .'%w'
+        \     .'%{
+        \           &bt is# "quickfix"
+        \           ?     line(".")."/".line("$").repeat(" ", 16 - len(line(".")."/".line("$")))
+        \           :     ""
+        \        }'
     endif
 
     return &ft is# 'freekeys'
@@ -177,7 +179,7 @@ fu! statusline#main(has_focus) abort "{{{2
        \
        \ :      '%{statusline#list_position()}'
        \       .' %1*%{statusline#tail_of_path()}%* '
-       \       .'%-5r%-10w'
+       \       .'%-5r'
        \       .'%2*%{&modified && bufname("%") != "" && &bt isnot# "terminal" ? "[+]" : ""}%*'
        \       .'%='
        \       .'%-5{&ve is# "all" ? "[ve]" : ""}'
