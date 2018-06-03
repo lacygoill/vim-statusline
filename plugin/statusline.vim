@@ -154,6 +154,11 @@ endfu
 
 fu! statusline#main(has_focus) abort "{{{2
     if !a:has_focus
+        " Do not  use `%-16{...}` to distance the position  in the quickfix from
+        " the right border.
+        " The additional spaces would be added  no matter what; i.e. even if the
+        " buffer is not a quickfix buffer.
+        " We want them only in a quickfix buffer.
         return ' %1*%{statusline#tail_of_path()}%* '
         \     .'%='
         \     .'%w'
