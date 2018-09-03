@@ -120,6 +120,11 @@ fu! statusline#list_position() abort "{{{2
         return '[]'
     endif
 
+    " FIXME: The code to get the index position in Neovim is wrong. {{{
+    "
+    "         ✘
+    "         get(getqflist({'nr': 0}), 'nr', 0)
+    "}}}
     let info = { 'qfl': has('nvim')
     \                   ?    {'idx': get(getqflist({'nr': 0}), 'nr', 0), 'size': len(getqflist())}
     \                   :    getqflist({ 'idx':  0, 'size': 0 }),
