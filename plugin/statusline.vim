@@ -31,32 +31,32 @@ fu! s:is_in_list_and_current() abort "{{{2
     return
     \      { 'qfl':
     \               { ->
-    \                        [ s:cur_buf,         s:cur_line,       s:cur_col ]
-    \                    ==# [ s:cur_entry.bufnr, s:cur_entry.lnum, s:cur_entry.col ]
+    \                        [s:cur_buf,         s:cur_line,       s:cur_col]
+    \                    ==# [s:cur_entry.bufnr, s:cur_entry.lnum, s:cur_entry.col]
     \                ||
-    \                        [ s:cur_buf,         s:cur_line       ]
-    \                    ==# [ s:cur_entry.bufnr, s:cur_entry.lnum ]
-    \                    &&    s:cur_entry.col ==# 0
+    \                        [s:cur_buf,         s:cur_line      ]
+    \                    ==# [s:cur_entry.bufnr, s:cur_entry.lnum]
+    \                    &&   s:cur_entry.col ==# 0
     \                ||
     \                         s:cur_buf
     \                    ==#  s:cur_entry.bufnr
-    \                    && [ s:cur_entry.lnum, s:cur_entry.col ] ==# [ 0, 0 ]
+    \                    && [s:cur_entry.lnum, s:cur_entry.col] ==# [0, 0]
     \               },
     \
-    \        'arg': { -> s:bufname ==# argv(s:argidx) }
-    \      }[ s:list.name ]
+    \        'arg': {-> s:bufname ==# argv(s:argidx)}
+    \      }[s:list.name]
 endfu
 
 fu! s:is_in_list_but_not_current() abort "{{{2
     return
-    \      { 'qfl':
-    \               { -> index(
-    \                     map(deepcopy(s:list.entries), { i,v -> [ v.bufnr, v.lnum, v.col ] }),
-    \                     [ s:cur_buf, s:cur_line, s:cur_col ]) >= 0
-    \               },
+    \      {'qfl':
+    \              {-> index(
+    \                   map(deepcopy(s:list.entries), { i,v -> [v.bufnr, v.lnum, v.col]}),
+    \                   [s:cur_buf, s:cur_line, s:cur_col]) >= 0
+    \              },
     \
-    \        'arg': { -> index(map(range(s:argc), { i,v -> argv(v) }), s:bufname) >= 0 }
-    \      }[ s:list.name ]
+    \       'arg': {-> index(map(range(s:argc), { i,v -> argv(v) }), s:bufname) >= 0 }
+    \      }[s:list.name]
 endfu
 
 fu! statusline#list_position() abort "{{{2
@@ -99,8 +99,8 @@ fu! statusline#list_position() abort "{{{2
     "         echo Func()
     "         → 1
     "         }}}
-    let [ s:cur_col, s:cur_line, s:cur_buf ] = [ col('.'),     line('.'), bufnr('%') ]
-    let [ s:bufname, s:argidx, s:argc ]      = [ bufname('%'), argidx(),  argc() ]
+    let [s:cur_col, s:cur_line, s:cur_buf] = [col('.'),     line('.'), bufnr('%')]
+    let [s:bufname, s:argidx, s:argc]      = [bufname('%'), argidx(),  argc()]
 
     " FIXME:
     " In Neovim, a qfl doesn't have a 'size' property.
@@ -112,8 +112,8 @@ fu! statusline#list_position() abort "{{{2
         return '[> '.s:MAX_LIST_SIZE.']'
     endif
 
-    let s:list = [ { 'name': 'qfl', 'entries': getqflist()},
-    \              { 'name': 'arg', 'entries': map(range(argc()), { i,v -> argv(v) }) }
+    let s:list = [{'name': 'qfl', 'entries': getqflist()},
+    \             {'name': 'arg', 'entries': map(range(argc()), { i,v -> argv(v)})}
     \            ][g:my_stl_list_position-1]
 
     if empty(s:list.entries)
@@ -133,8 +133,8 @@ fu! statusline#list_position() abort "{{{2
 
     if len(info) < 2 | return '[]' | endif
 
-    let [ idx, size ] = [ info.idx, info.size ]
-    let s:cur_entry   = s:list.entries[idx-1]
+    let [idx, size] = [info.idx, info.size]
+    let s:cur_entry = s:list.entries[idx-1]
 
     return ( s:is_in_list_and_current()()
        \ ?       {'qfl': 'C', 'arg': 'A'}[s:list.name]
