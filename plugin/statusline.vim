@@ -34,7 +34,7 @@ fu! s:is_in_list_and_current() abort "{{{2
     \                        [s:cur_buf,         s:cur_line,       s:cur_col]
     \                    ==# [s:cur_entry.bufnr, s:cur_entry.lnum, s:cur_entry.col]
     \                ||
-    \                        [s:cur_buf,         s:cur_line      ]
+    \                        [s:cur_buf,         s:cur_line]
     \                    ==# [s:cur_entry.bufnr, s:cur_entry.lnum]
     \                    &&   s:cur_entry.col ==# 0
     \                ||
@@ -112,9 +112,10 @@ fu! statusline#list_position() abort "{{{2
         return '[> '.s:MAX_LIST_SIZE.']'
     endif
 
-    let s:list = [{'name': 'qfl', 'entries': getqflist()},
-    \             {'name': 'arg', 'entries': map(range(argc()), { i,v -> argv(v)})}
-    \            ][g:my_stl_list_position-1]
+    let s:list = [
+        \ {'name': 'qfl', 'entries': getqflist()},
+        \ {'name': 'arg', 'entries': map(range(argc()), { i,v -> argv(v)})}
+        \ ][g:my_stl_list_position-1]
 
     if empty(s:list.entries)
         return '[]'
