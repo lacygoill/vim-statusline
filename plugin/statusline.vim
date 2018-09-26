@@ -364,10 +364,13 @@ fu! statusline#tabline() abort "{{{2
         let s .= '%'.i.'T'
 
         " set the label by invoking another function `statusline#tabpage_label()`
-        let s .= ' %{statusline#tabpage_label('.i.')} '
-        "         │                                  │
-        "         │                                  └─ space to separate the label from the next one
+        let s .= ' %{statusline#tabpage_label('.i.')} │'
+        "         │                                  ├┘{{{
+        "         │                                  └ space and vertical line
+        "         │                                    to separate the label from the next one
+        "         │
         "         └─ space to separate the label from the previous one
+        "}}}
     endfor
 
     " color the rest of the line with TabLineFill and reset tab page nr
