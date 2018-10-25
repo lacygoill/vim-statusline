@@ -117,20 +117,17 @@ fu! statusline#list_position() abort "{{{2
         \ {'name': 'arg', 'entries': map(range(argc()), { i,v -> argv(v)})}
         \ ][g:my_stl_list_position-1]
 
-    if empty(s:list.entries)
+    " Why the guard `has('nvim')`?{{{
+    "
+    " We need Neovim's quickfix lists to support the 'idx' and 'size' properties
+    "}}}
+    if empty(s:list.entries) || has('nvim')
         return '[]'
     endif
 
-    " FIXME: The code to get the index position in Neovim is wrong. {{{
-    "
-    "         ✘
-    "         get(getqflist({'nr': 0}), 'nr', 0)
-    "}}}
-    let info = { 'qfl': has('nvim')
-    \                   ?    {'idx': get(getqflist({'nr': 0}), 'nr', 0), 'size': len(getqflist())}
-    \                   :    getqflist({ 'idx':  0, 'size': 0 }),
-    \            'arg': { 'idx':  argidx(), 'size': argc() },
-    \ }[s:list.name]
+    let info = { 'qfl': getqflist({ 'idx':  0, 'size': 0 }),
+        \        'arg': { 'idx':  argidx(), 'size': argc() },
+        \ }[s:list.name]
 
     if len(info) < 2 | return '[]' | endif
 
