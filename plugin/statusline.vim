@@ -463,7 +463,7 @@ fu! statusline#tail_of_path() abort "{{{2
     return &bt is# 'terminal'
        \ ?     '[term]'
        \ : &ft is# 'dirvish'
-       \ ?     '[dirvish]'
+       \ ?     '[dirvish] '.expand('%:p')
        \ : &bt is# 'quickfix'
        \ ?     get(b:, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
        \ : tail is# 'tree_explorer::'
