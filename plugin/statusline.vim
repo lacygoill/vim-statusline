@@ -560,7 +560,7 @@ augroup my_statusline
     au Filetype  dirvish,man,qf  setl stl=%!statusline#main(1)
     au BufDelete UnicodeTable    setl stl=%!statusline#main(1)
 
-    " show just the line number in a command line window
+    " show just the line number in a command-line window
     au CmdWinEnter  *  let &l:stl = '%=%-13l'
 augroup END
 
