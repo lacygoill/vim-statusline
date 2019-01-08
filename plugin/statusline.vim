@@ -88,7 +88,7 @@ fu! statusline#list_position() abort "{{{2
     "             return l:Test()
     "         endfu
     "         echo Func()
-    "         → E121
+    "         E121~
     "
     "         fu! Func()
     "             let foo  = 1
@@ -97,7 +97,7 @@ fu! statusline#list_position() abort "{{{2
     "             return l:Test()
     "         endfu
     "         echo Func()
-    "         → 1
+    "         1~
     "         }}}
     let [s:cur_col, s:cur_line, s:cur_buf] = [col('.'),     line('.'), bufnr('%')]
     let [s:bufname, s:argidx, s:argc]      = [bufname('%'), argidx(),  argc()]
