@@ -227,8 +227,8 @@ endfu
 "
 " This means that, if you want to reliably test a (buffer/window-)local variable:
 "
-"         • you NEED a `%{}`              in the expression for the non-focused windows
-"         • you CAN work without a `%{}`  in the expression for the     focused window
+"         - you NEED a `%{}`              in the expression for the non-focused windows
+"         - you CAN work without a `%{}`  in the expression for the     focused window
 "
 " This  explains  why you  can  test  `&ft` outside  a  `%{}`  item in  the  2nd
 " expression, but not in the first:
@@ -297,9 +297,9 @@ endfu
 "
 " Can be used (after the 1st percent sign) with all kinds of items:
 "
-"         • %l
-"         • %{…}
-"         • %(…%)
+"         - %l
+"         - %{…}
+"         - %(…%)
 "
 " Useful to prepend a space to an item, but only if it's not empty:
 "
@@ -319,14 +319,14 @@ endfu
 "
 " Can be used (after the 1st percent sign) with all kinds of items:
 "
-"         • %l
-"         • %{…}
-"         • %(…%)
+"         - %l
+"         - %{…}
+"         - %(…%)
 "
 " Truncation occurs with:
 "
-"         • a '<' on the left for text items
-"         • a '>' on the right for numeric items (only `maxwid - 2` digits are kept)
+"         - a '<' on the left for text items
+"         - a '>' on the right for numeric items (only `maxwid - 2` digits are kept)
 "           the number after '>' stands for how many digits are missing
 
 " various items {{{3
@@ -401,10 +401,10 @@ endfu
 "
 " Rules:
 "
-" • Any item must begin with `%`.
-" • An expression must be surrounded with `{}`.
-" • The HGs must be surrounded with `##`.
-" • We should only use one of the 3 following HGs, to highlight:
+" - Any item must begin with `%`.
+" - An expression must be surrounded with `{}`.
+" - The HGs must be surrounded with `##`.
+" - We should only use one of the 3 following HGs, to highlight:
 "
 "       ┌─────────────────────────┬─────────────┐
 "       │ the non-focused labels  │ TabLine     │
@@ -490,7 +490,7 @@ endfu
 "}}}
 " How to read the returned expression:{{{
 "
-"     • pair the tests and the values as if they were an imbrication of parentheses
+"     - pair the tests and the values as if they were an imbrication of parentheses
 "
 "     Example:
 "             1st test    =    &bt isnot# 'terminal'
@@ -501,13 +501,13 @@ endfu
 "
 "             …
 "
-"     • when a test fails, the returned value is immediately known:
+"     - when a test fails, the returned value is immediately known:
 "       it's the one paired with the test
 "
-"     • when a test succeeds, the next test is evaluated:
+"     - when a test succeeds, the next test is evaluated:
 "       all the previous ones are known to be true
 "
-"     • If all tests succeed, the value which is used is `tail`.
+"     - If all tests succeed, the value which is used is `tail`.
 "       It's the only one which isn't paired with any test.
 "       It means that it's used iff all the tests have NOT failed.
 "       It's the default value used for a buffer without any peculiarity:
