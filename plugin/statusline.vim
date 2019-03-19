@@ -174,8 +174,8 @@ fu! statusline#main(has_focus) abort "{{{2
 
     return &ft is# 'freekeys'
        \ ?     '%=%-5l'
-       \ : &ft is# 'tree'
-       \ ?     ' '.(get(b:, 'mirvish_curdir', '') is# '/' ? '/' : fnamemodify(get(b:, 'mirvish_curdir', ''), ':t'))
+       \ : &ft is# 'fex_tree'
+       \ ?     ' '.(get(b:, 'fex_curdir', '') is# '/' ? '/' : fnamemodify(get(b:, 'fex_curdir', ''), ':t'))
        \          .'%=%-8(%l,%c%) %p%% '
        \ : &bt is# 'quickfix'
        \ ? (get(w:, 'quickfix_title', '') =~# '\<TOC$'
@@ -448,9 +448,9 @@ fu! statusline#tabpage_label(n) abort "{{{2
        \ ?     fnamemodify(name, ':h:t').'/'
        \ : getbufvar(bufnr, '&bt') is# 'quickfix'
        \ ?     getbufvar(bufnr, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
-       \ : name =~# 'tree_explorer::$'
+       \ : name =~# 'fex_tree$'
        \ ?     '┗ /'
-       \ : name =~# 'tree_explorer::'
+       \ : name =~# 'fex_tree'
        \ ?     '┗ '.fnamemodify(name, ':t')
        \ : empty(name)
        \ ?     '∅'
@@ -466,7 +466,7 @@ fu! statusline#tail_of_path() abort "{{{2
        \ ?     '[dirvish] '.expand('%:p')
        \ : &bt is# 'quickfix'
        \ ?     get(b:, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
-       \ : tail is# 'tree_explorer::'
+       \ : tail is# 'fex_tree'
        \ ?     '/'
        \ :  expand('%:p') =~# '^fugitive://'
        \ ?     '[fgt]'
@@ -513,7 +513,7 @@ endfu
 "       It's the default value used for a buffer without any peculiarity:
 "       random type, random name
 "}}}
-
+" }}}1
 " Options {{{1
 
 " always enable the status line
@@ -562,5 +562,18 @@ augroup my_statusline
 
     " show just the line number in a command-line window
     au CmdWinEnter  *  let &l:stl = '%=%-13l'
+    " same thing in a websearch file
+    " Why `WinEnter` *and* `BufWinEnter`?{{{
+    "
+    " `BufWinEnter` for when the buffer is displayed for the first time.
+    " `WinEnter` for when we move to another window, then come back.
+    "}}}
+    " Why not `FileType`?{{{
+    "
+    " Because there's a `BufWinEnter` after `FileType`.
+    " And we have an autocmd listening  to `BufWinEnter` which would set `'stl'`
+    " with the value `%!statusline#main(1)`.
+    "}}}
+    au WinEnter,BufWinEnter  websearch  let &l:stl = '%=%-13l'
 augroup END
 
