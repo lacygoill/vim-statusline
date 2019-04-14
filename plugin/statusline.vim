@@ -204,6 +204,19 @@ fu! statusline#main(has_focus) abort "{{{2
     "     \       .' %1*%{statusline#tail_of_path()}%* '
     "               ^
     "               no-break space
+    "
+    " Update: Actually, it's worse than that.
+    " We still lose the contents of the statusline.
+    "
+    " MWE:
+    "
+    "     $ nvim +'set stl=foobar'
+    "     :ls
+    "     no foobar~
+    "
+    "     $ nvim +'set stl=\ foobar'
+    "     :ls
+    "     6 spaces~
     "}}}
     return &ft is# 'freekeys'
        \ ?     '%=%-5l'
