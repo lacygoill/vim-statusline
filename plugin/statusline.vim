@@ -172,6 +172,39 @@ fu! statusline#main(has_focus) abort "{{{2
         \        }'
     endif
 
+    " FIXME: In Neovim, we can't write a space at the start of the statusline.{{{
+    "
+    " I want a space to create some  distance between the file path and the left
+    " edge of the screen.
+    " But if  we use  one, in Neovim,  when the pager  is displayed  (like after
+    " `:ls`), the  statusline is empty; it  seems the space is  repeated to fill
+    " the whole line.
+    "
+    " MWE:
+    "
+    "     set laststatus=2
+    "     augroup my_statusline
+    "         au!
+    "         au BufWinEnter * setl stl=%!statusline#main()
+    "     augroup END
+    "     fu! statusline#tail_of_path() abort
+    "         let tail = fnamemodify(expand('%:p'), ':t')
+    "         return tail is# '' ? '[No Name]' : tail
+    "     endfu
+    "     fu! statusline#main() abort
+    "         return ' %{statusline#tail_of_path()}'
+    "     endfu
+    "
+    " Solution: Use a no-break space.
+    "
+    "               space
+    "               v
+    "     \       .' %1*%{statusline#tail_of_path()}%* '
+    "     →
+    "     \       .' %1*%{statusline#tail_of_path()}%* '
+    "               ^
+    "               no-break space
+    "}}}
     return &ft is# 'freekeys'
        \ ?     '%=%-5l'
        \ : &ft is# 'fex_tree'
@@ -186,7 +219,7 @@ fu! statusline#main(has_focus) abort "{{{2
        \      ."%=    %-15(%l/%L%) "
        \
        \ :      '%{statusline#list_position()}'
-       \       .' %1*%{statusline#tail_of_path()}%* '
+       \       .' %1*%{statusline#tail_of_path()}%* '
        \       .'%-5r'
        \       .'%2*%{&modified && bufname("%") != "" && &bt isnot# "terminal" ? "[+]" : ""}%*'
        \       .'%='
