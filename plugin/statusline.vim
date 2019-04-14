@@ -210,11 +210,11 @@ fu! statusline#main(has_focus) abort "{{{2
     "
     " MWE:
     "
-    "     $ nvim +'set stl=foobar'
+    "     $ nvim -Nu NONE +'set stl=foobar'
     "     :ls
     "     no foobar~
     "
-    "     $ nvim +'set stl=\ foobar'
+    "     $ nvim -Nu NONE +'set stl=\ foobar'
     "     :ls
     "     6 spaces~
     "}}}
