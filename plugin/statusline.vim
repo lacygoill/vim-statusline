@@ -102,10 +102,6 @@ fu! statusline#list_position() abort "{{{2
     let [s:cur_col, s:cur_line, s:cur_buf] = [col('.'),     line('.'), bufnr('%')]
     let [s:bufname, s:argidx, s:argc]      = [bufname('%'), argidx(),  argc()]
 
-    " FIXME:
-    " In Neovim, a qfl doesn't have a 'size' property.
-    " As a result, this test will always fail, and if the qfl is big, `getqflist()`
-    " will slow Vim down.
     if g:my_stl_list_position ==# 1 && get(getqflist({'size': 0}), 'size', 0) > s:MAX_LIST_SIZE
         return '[> '.s:MAX_LIST_SIZE.']'
     elseif g:my_stl_list_position ==# 2 && argc() > s:MAX_LIST_SIZE
@@ -125,8 +121,8 @@ fu! statusline#list_position() abort "{{{2
         return '[]'
     endif
 
-    let info = { 'qfl': getqflist({ 'idx':  0, 'size': 0 }),
-        \        'arg': { 'idx':  argidx(), 'size': argc() },
+    let info = { 'qfl': getqflist({'idx':  0, 'size': 0}),
+        \        'arg': {'idx':  argidx(), 'size': argc()},
         \ }[s:list.name]
 
     if len(info) < 2 | return '[]' | endif
@@ -361,23 +357,23 @@ endfu
 
 " various items {{{3
 
-"     ┌────────────────────────────────┬─────────────────────────────────────────────────────┐
-"     │ %1*%t%*                        │ switch to HG User1, add filename, reset HG          │
-"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"     │ %2*%{&modified ? "[+]" : ""}%* │ switch to HG User2, add flag modified [+], reset HG │
-"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"     │ %r%w                           │ flags: read-only [RO], preview window [Preview]     │
-"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"     │ %=                             │ right-align next items                              │
-"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"     │ %{&ve is# "all" ? "[ve]" : ""} │ flag for 'virtualedit'                              │
-"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"     │ %l                             │ line nr                                             │
-"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"     │ %v                             │ virtual column nr                                   │
-"     ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"     │ %p%%                           │ percentage of read lines                            │
-"     └────────────────────────────────┴─────────────────────────────────────────────────────┘
+"    ┌────────────────────────────────┬─────────────────────────────────────────────────────┐
+"    │ %1*%t%*                        │ switch to HG User1, add filename, reset HG          │
+"    ├────────────────────────────────┼─────────────────────────────────────────────────────┤
+"    │ %2*%{&modified ? "[+]" : ""}%* │ switch to HG User2, add flag modified [+], reset HG │
+"    ├────────────────────────────────┼─────────────────────────────────────────────────────┤
+"    │ %r%w                           │ flags: read-only [RO], preview window [Preview]     │
+"    ├────────────────────────────────┼─────────────────────────────────────────────────────┤
+"    │ %=                             │ right-align next items                              │
+"    ├────────────────────────────────┼─────────────────────────────────────────────────────┤
+"    │ %{&ve is# "all" ? "[ve]" : ""} │ flag for 'virtualedit'                              │
+"    ├────────────────────────────────┼─────────────────────────────────────────────────────┤
+"    │ %l                             │ line nr                                             │
+"    ├────────────────────────────────┼─────────────────────────────────────────────────────┤
+"    │ %v                             │ virtual column nr                                   │
+"    ├────────────────────────────────┼─────────────────────────────────────────────────────┤
+"    │ %p%%                           │ percentage of read lines                            │
+"    └────────────────────────────────┴─────────────────────────────────────────────────────┘
 
 fu! statusline#tabline() abort "{{{2
     let s = ''
