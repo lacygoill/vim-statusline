@@ -113,11 +113,7 @@ fu! statusline#list_position() abort "{{{2
         \ {'name': 'arg', 'entries': map(range(argc()), { i,v -> argv(v)})}
         \ ][g:my_stl_list_position-1]
 
-    " Why the guard `has('nvim')`?{{{
-    "
-    " We need Neovim's quickfix lists to support the 'idx' and 'size' properties
-    "}}}
-    if empty(s:list.entries) || has('nvim')
+    if empty(s:list.entries)
         return '[]'
     endif
 
@@ -166,6 +162,7 @@ fu! statusline#main(has_focus) abort "{{{2
         \           ?     line(".")."/".line("$").repeat(" ", 16 - len(line(".")."/".line("$")))
         \           :     ""
         \        }'
+        \     .'%{&l:diff ? "[Diff]" : ""}'
     endif
 
     " Why do you use a no-break space?{{{
@@ -222,6 +219,7 @@ fu! statusline#main(has_focus) abort "{{{2
        \       .'%-15{statusline#fugitive()}'
        \       .'%-8(%.5l,%.3v%)'
        \       .'%4p%% '
+       \       .'%{&l:diff ? "[Diff]" : ""}'
 endfu
 
 " This function can be called when we enter a window, or when we leave one.
