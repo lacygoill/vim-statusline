@@ -19,6 +19,21 @@ let s:MAX_LIST_SIZE = 999
 " If possible, make the `%{statusline#list_position()}` item local to the current window.
 " For inspiration, study `vim-flagship` first.
 
+" TODO: try to simplify the code, using the Vim patch 8.1.1372
+"
+" https://github.com/vim/vim/commit/1c6fd1e100fd0457375642ec50d483bcc0f61bb2
+" Wait for Nvim to merge the patch.
+"
+" The patch introduces the variables `g:statusline_winid` and `g:actual_curwin`.
+" I'm not  sure how to use  them, but I think  that with them, we  wouldn't need
+" autocmds to set a local 'stl' anymore.
+" We could set a global 'stl', and  handle all cases (active vs inactive window)
+" in the function.
+"
+"     let active = winid() == g:statusline_winid
+"
+" See: https://github.com/vim/vim/issues/4406
+
 " Functions {{{1
 fu! statusline#fugitive() abort "{{{2
     if !get(g:, 'my_fugitive_branch', 0)
@@ -565,6 +580,21 @@ set guioptions-=e
 set tabline=%!statusline#tabline()
 
 
+" TODO: Do we really need autocmds?{{{
+"
+" https://github.com/vim/vim/issues/4406#issuecomment-495496763
+"
+"     fun! SetupStl(nr)
+"       return get(extend(w:, { "is_active": (winnr() == a:nr) }), "", "")
+"     endf
+"
+"     fun! BuildStatusLine(nr)
+"       return '%{SetupStl(' . a:nr . ')} %{w:["is_active"] ? "active" : "inactive"}'
+"     endf
+"
+"     " winnr() here is always the number of the *active* window
+"     set statusline=%!BuildStatusLine(winnr())
+"}}}
 augroup my_statusline
     au!
 
