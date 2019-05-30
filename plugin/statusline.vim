@@ -628,6 +628,6 @@ augroup my_statusline
     " And we have an autocmd listening  to `BufWinEnter` which would set `'stl'`
     " with the value `%!statusline#main(1)`.
     "}}}
-    au WinEnter,BufWinEnter  websearch  let &l:stl = '%=%-13l'
+    au WinEnter,BufWinEnter  tmuxprompt,websearch  let &l:stl = '%=%-13l'
 augroup END
 
