@@ -488,9 +488,9 @@ fu! statusline#tabpage_label(n) abort "{{{2
        \ : getbufvar(bufnr, '&bt') is# 'quickfix'
        \ ?     getbufvar(bufnr, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
        \ : name =~# 'fex_tree$'
-       \ ?     '┗ /'
+       \ ?     '└ /'
        \ : name =~# 'fex_tree'
-       \ ?     '┗ '.fnamemodify(name, ':t')
+       \ ?     '└ '.fnamemodify(name, ':t')
        \ : empty(name)
        \ ?     '∅'
        \ :     fnamemodify(name, ':t')
