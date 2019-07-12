@@ -210,6 +210,15 @@ fu! statusline#main(has_focus) abort "{{{2
     " displayed; but it's probably by design,  because Nvim seems to behave like
     " that since at least `v0.3.0`.
     "}}}
+    " Why an indicator for the 'paste' option?{{{
+    "
+    " Atm there's  an issue in  Nvim, where 'paste' may  be wrongly set  when we
+    " paste  some text  on the  command-line  with a  trailing literal  carriage
+    " return.
+    "
+    " Anyway,  this is  an option  which has  too many  effects; we  need to  be
+    " informed immediately whenever it's set.
+    "}}}
     return &ft is# 'freekeys'
        \ ?     '%=%-5l'
        \ : &ft is# 'fex_tree'
@@ -227,8 +236,9 @@ fu! statusline#main(has_focus) abort "{{{2
        \       .' %1*%{statusline#tail_of_path()}%* '
        \       .'%-5r'
        \       .'%2*%{&modified && bufname("%") != "" && &bt isnot# "terminal" ? "[+]" : ""}%*'
+       \       .'%2*%-7{&paste ? "[paste]" : ""}%*'
+       \       .'%4{&ve is# "all" ? "[ve]" : ""}'
        \       .'%='
-       \       .'%-5{&ve is# "all" ? "[ve]" : ""}'
        \       .'%-7{exists("*capslock#status") ? capslock#status() : ""}'
        \       .'%-5{exists("*session#status")  ? session#status()  : ""}'
        \       .'%-15{statusline#fugitive()}'
