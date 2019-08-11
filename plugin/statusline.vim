@@ -426,14 +426,14 @@ fu! statusline#tabline() abort "{{{2
     " Keep it for educational purpose.
     "
     " add a closing label
-    "                                ┌ %X    = closing label
-    "                                │ 999   = nr of the tab page to close when we click on the label
-    "                                │         (big nr = last tab page currently opened)
-    "                                │ close = text to display
-    "                       ┌────────┤
+    "                       ┌ %X    = closing label
+    "                       │ 999   = nr of the tab page to close when we click on the label
+    "                       │         (big nr = last tab page currently opened)
+    "                       │ close = text to display
+    "                       ├────────┐
     " let s .= '%=%#TabLine#%999Xclose'
-    "           └┤
-    "            └ right-align next labels
+    "           ├┘
+    "           └ right-align next labels
 
     return s
 endfu
