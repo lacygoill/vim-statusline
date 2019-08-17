@@ -10,10 +10,10 @@ let s:MAX_LIST_SIZE = 999
 " Read the following links to improve the statusline.
 
 " Blog post talking about status line customization:
-"     http://www.blaenkdenum.com/posts/a-simpler-vim-statusline
+" http://www.blaenkdenum.com/posts/a-simpler-vim-statusline
 
 " Vim Powerline-like status line without the need of any plugin:
-"     https://gist.github.com/ericbn/f2956cd9ec7d6bff8940c2087247b132
+" https://gist.github.com/ericbn/f2956cd9ec7d6bff8940c2087247b132
 
 " TODO:
 " If possible, make the `%{statusline#list_position()}` item local to the current window.
@@ -79,41 +79,6 @@ fu! statusline#list_position() abort "{{{2
         return ''
     endif
 
-    " FIXME: At least ONE of the variables used by a lambda must be created BEFORE{{{
-    " the lambda. Is it documented? I can't find anything in `:h closure`,
-    " nor in `:h :func-closure` (nor on Vim's repo: `lambda E121`).
-    "
-    " I could understand the rule “all variables used by a lambda must be created
-    " before the latter“. But, if some variables can be created after, why not all?
-    "
-    " Theory:
-    " When one variable used  by a lambda is created before  the latter, it runs
-    " in the context  of the function. When, all variables used  by a lambda are
-    " created after the latter, it does NOT run in the context of the function.
-    "
-    " Anyway, here, we could move 2 out of the 3 following assignments after the
-    " lambda, but at least 1 should stay before. I prefer to write the 3 before.
-    "
-    " Reproduce:
-    "
-    "         fu! Func()
-    "             let l:Test = { -> foo + bar ==# 3 }
-    "             let foo  = 1
-    "             let bar  = 2
-    "             return l:Test()
-    "         endfu
-    "         echo Func()
-    "         E121~
-    "
-    "         fu! Func()
-    "             let foo  = 1
-    "             let l:Test = { -> foo + bar ==# 3 }
-    "             let bar  = 2
-    "             return l:Test()
-    "         endfu
-    "         echo Func()
-    "         1~
-    "         }}}
     let [s:cur_col, s:cur_line, s:cur_buf] = [col('.'),     line('.'), bufnr('%')]
     let [s:bufname, s:argidx, s:argc]      = [bufname('%'), argidx(),  argc()]
 
@@ -158,23 +123,28 @@ endfu
 "
 " And/or use mappings, such as:
 "
-"         nno  <silent>  [oi  :let g:my_stl_list_position = 1<cr>
-"         nno  <silent>  ]oi  :let g:my_stl_list_position = 0<cr>
-"         nno  <silent>  coi  :let g:my_stl_list_position = !get(g:, 'my_stl_list_position', 0)<cr>
+"     nno  <silent>  [oi  :let g:my_stl_list_position = 1<cr>
+"     nno  <silent>  ]oi  :let g:my_stl_list_position = 0<cr>
+"     nno  <silent>  coi  :let g:my_stl_list_position = !get(g:, 'my_stl_list_position', 0)<cr>
 
 fu! statusline#main(has_focus) abort "{{{2
     if !a:has_focus
-        " Do not  use `%-16{...}` to distance the position  in the quickfix from
-        " the right border.
+        " Do not use `%-16{...}` to distance the position in the quickfix list from the right border.{{{
+        "
         " The additional spaces would be added  no matter what; i.e. even if the
         " buffer is not a quickfix buffer.
         " We want them only in a quickfix buffer.
+        "}}}
+        " TODO: It would be nice to have a percentage indicator in the status line of a preview window.{{{
+        "
+        " Useful when scrolling, to know how far from the top/bottom of the file we are.
+        "}}}
         return ' %1*%{statusline#tail_of_path()}%* '
         \     .'%='
         \     .'%w'
         \     .'%{
         \           &bt is# "quickfix"
-        \           ?     line(".")."/".line("$").repeat(" ", 16 - len(line(".")."/".line("$")))
+        \           ?     line(".").."/"..line("$")..repeat(" ", 16 - len(line(".").."/".line("$")))
         \           :     ""
         \        }'
         \     .'%{&l:diff ? "[Diff]" : ""}'
@@ -252,7 +222,8 @@ endfu
 " Treat a qf buffer separately.{{{3
 "
 " For a qf buffer, the default local value of 'stl' can be found here:
-"         $VIMRUNTIME/ftplugin/qf.vim
+"
+"     $VIMRUNTIME/ftplugin/qf.vim
 "
 " It's important  to treat it  separately, because  our default value  for 'stl'
 " wouldn't give us much information in a qf window. In particular, we would miss
@@ -266,36 +237,36 @@ endfu
 " which happens every time we change the focus from a window to another.
 " This means that when you write the 1st expression:
 "
-"         if !a:has_focus
-"             return 1st_expr
-"         endif
+"     if !a:has_focus
+"         return 1st_expr
+"     endif
 "
-" … you  must NOT assume  that this expression will  only be evaluated  in the
+" ... you  must NOT assume  that this expression will  only be evaluated  in the
 " window in  which the focus  was just before. It  will be evaluated  inside ALL
 " windows which don't have the focus, every time you change the focused window.
 "
 " This means that, if you want to reliably test a (buffer/window-)local variable:
 "
-"         - you NEED a `%{}`              in the expression for the non-focused windows
-"         - you CAN work without a `%{}`  in the expression for the     focused window
+"    - you NEED a `%{}`              in the expression for the non-focused windows
+"    - you CAN work without a `%{}`  in the expression for the     focused window
 "
 " This  explains  why you  can  test  `&ft` outside  a  `%{}`  item in  the  2nd
 " expression, but not in the first:
 "
-"         if !has_focus
-"             return '…'.(&bt is# 'quickfix' ? '…' : '')    ✘
-"         endif
-"         return &bt is# 'quickfix'                         ✔
-"         ?…
-"         :…
+"     if !has_focus
+"         return '...'.(&bt is# 'quickfix' ? '...' : '')    ✘
+"     endif
+"     return &bt is# 'quickfix'                         ✔
+"     ?...
+"     :...
 "
 "
-"         if !has_focus
-"             return '…%{&bt is# 'quickfix' ? "…" : ""}'    ✔
-"         endif
-"         return &bt is# 'quickfix'                         ✔
-"         ?…
-"         :…
+"     if !has_focus
+"         return '...%{&bt is# 'quickfix' ? "..." : ""}'    ✔
+"     endif
+"     return &bt is# 'quickfix'                         ✔
+"     ?...
+"     :...
 
 " %m {{{3
 
@@ -346,15 +317,15 @@ endfu
 "
 " Can be used (after the 1st percent sign) with all kinds of items:
 "
-"         - %l
-"         - %{…}
-"         - %(…%)
+"    - `%l`
+"    - `%{...}`
+"    - `%(...%)`
 "
 " Useful to prepend a space to an item, but only if it's not empty:
 "
-"                 %-42item
-"                     └──┤
-"                        └ suppose that the width of the item is 41
+"     %-42item
+"         ├──┘
+"         └ suppose that the width of the item is 41
 "
 " The width  of the field  is one unit  greater than the one  of the item,  so a
 " space will be added; and the left-justifcation  will cause it to appear at the
@@ -364,19 +335,19 @@ endfu
 
 " Limit the width of an item to 42 cells:
 "
-"               %.42item
+"     %.42item
 "
 " Can be used (after the 1st percent sign) with all kinds of items:
 "
-"         - %l
-"         - %{…}
-"         - %(…%)
+"    - `%l`
+"    - `%{...}`
+"    - `%(...%)`
 "
 " Truncation occurs with:
 "
-"         - a '<' on the left for text items
-"         - a '>' on the right for numeric items (only `maxwid - 2` digits are kept)
-"           the number after '>' stands for how many digits are missing
+"    - a '<' on the left for text items
+"    - a '>' on the right for numeric items (only `maxwid - 2` digits are kept)
+"      the number after '>' stands for how many digits are missing
 
 " various items {{{3
 
@@ -397,6 +368,7 @@ endfu
 "    ├────────────────────────────────┼─────────────────────────────────────────────────────┤
 "    │ %p%%                           │ percentage of read lines                            │
 "    └────────────────────────────────┴─────────────────────────────────────────────────────┘
+" }}}3
 
 fu! statusline#tabline() abort "{{{2
     let s = ''
@@ -443,10 +415,10 @@ endfu
 " Suppose we have 3 tab pages, and the focus is currently in the 2nd one.
 " The value of 'tal' could be similar to this:
 "
-"         %#TabLine#%1T %{MyTabLabel(1)}
-"         %#TabLineSel#%2T %{MyTabLabel(2)}
-"         %#TabLine#%3T %{MyTabLabel(3)}
-"         %#TabLineFill#%T%=%#TabLine#%999Xclose
+"     %#TabLine#%1T %{MyTabLabel(1)}
+"     %#TabLineSel#%2T %{MyTabLabel(2)}
+"     %#TabLine#%3T %{MyTabLabel(3)}
+"     %#TabLineFill#%T%=%#TabLine#%999Xclose
 "
 " Rules:
 "
@@ -455,41 +427,39 @@ endfu
 " - The HGs must be surrounded with `##`.
 " - We should only use one of the 3 following HGs, to highlight:
 "
-"       ┌─────────────────────────┬─────────────┐
-"       │ the non-focused labels  │ TabLine     │
-"       ├─────────────────────────┼─────────────┤
-"       │ the focused label       │ TabLineSel  │
-"       ├─────────────────────────┼─────────────┤
-"       │ the rest of the tabline │ TabLineFill │
-"       └─────────────────────────┴─────────────┘
+"    ┌─────────────────────────┬─────────────┐
+"    │ the non-focused labels  │ TabLine     │
+"    ├─────────────────────────┼─────────────┤
+"    │ the focused label       │ TabLineSel  │
+"    ├─────────────────────────┼─────────────┤
+"    │ the rest of the tabline │ TabLineFill │
+"    └─────────────────────────┴─────────────┘
 "}}}
 fu! statusline#tabpage_label(n) abort "{{{2
-    "                   ┌ I give you the nr of a tab page
-    "             ┌─────┤
+    "             ┌ I give you the nr of a tab page
+    "             ├─────┐
     let buflist = tabpagebuflist(a:n)
-    "                    └─────┤
-    "                          └ give me its buffer list:
-    "                            for each window in the tab page, the function
-    "                            adds the nr of the buffer that it displays
-    "                            inside a list, and returns the final list
+    "                    ├─────┘
+    "                    └ give me its buffer list:
+    "                      for each window in the tab page, the function
+    "                      adds the nr of the buffer that it displays
+    "                      inside a list, and returns the final list
     "
-    "                 ┌ I give you the nr of a tab page
-    "           ┌─────┤
     let winnr = tabpagewinnr(a:n)
-    "                  └───┤
-    "                      └ give me the number of its focused window
+    "                  ├───┘
+    "                  └ give me the number of its focused window
 
     let bufnr = buflist[winnr - 1]
 
-    "            ┌ I give you the nr of a buffer
-    "          ┌─┤
+    "          ┌ I give you the nr of a buffer
+    "          ├─┐
     let name = bufname(bufnr)
-    "             └──┤
-    "                └ give me its name
+    "             ├──┘
+    "             └ give me its name
 
     " Alternative to `get(b:, 'qf_is_loclist', 0)` :
     "
-    "         get(get(getwininfo(win_getid(winnr, a:n)), 0, {}), 'loclist', 0)
+    "     get(get(getwininfo(win_getid(winnr, a:n)), 0, {}), 'loclist', 0)
 
     return getbufvar(bufnr, '&bt', '') is# 'terminal'
        \ ?     '[term]'
@@ -527,28 +497,29 @@ endfu
 " The following comment is kept for educational purpose, but no longer relevant.{{{
 " It applied to a different expression than the one currently used. Sth like:
 "
-"         return &bt  isnot#  'terminal'
-"            \ ? &ft  isnot#  'dirvish'
-"            \ ? &bt  isnot#  'quickfix'
-"            \ ? tail isnot# ''
-"            \ ?     tail
-"            \ :     '[No Name]'
-"            \ :     b:qf_is_loclist ? '[LL]' : '[QF]'
-"            \ :     '[dirvish]'
-"            \ :     '[term]'
+"     return &bt  isnot#  'terminal'
+"        \ ? &ft  isnot#  'dirvish'
+"        \ ? &bt  isnot#  'quickfix'
+"        \ ? tail isnot# ''
+"        \ ?     tail
+"        \ :     '[No Name]'
+"        \ :     b:qf_is_loclist ? '[LL]' : '[QF]'
+"        \ :     '[dirvish]'
+"        \ :     '[term]'
 "}}}
 " How to read the returned expression:{{{
 "
-"     - pair the tests and the values as if they were an imbrication of parentheses
+"    - pair the tests and the values as if they were an imbrication of parentheses
 "
-"     Example:
-"             1st test    =    &bt isnot# 'terminal'
-"             last value  =    [term]
+"      Example:
 "
-"             2nd test           =    &filetype isnot# 'dirvish'
-"             penultimate value  =    [dirvish]
+"         1st test    =    &bt isnot# 'terminal'
+"         last value  =    [term]
 "
-"             …
+"         2nd test           =    &filetype isnot# 'dirvish'
+"         penultimate value  =    [dirvish]
+"
+"         ...
 "
 "     - when a test fails, the returned value is immediately known:
 "       it's the one paired with the test
@@ -577,7 +548,7 @@ set laststatus=2
 
 " `vim-flagship` recommends to remove the `e` flag from 'guioptions', because it:
 "
-"         “disables  the GUI  tab line  in favor  of the  plain text  version“
+" > disables the GUI tab line in favor of the plain text version
 set guioptions-=e
 
 
