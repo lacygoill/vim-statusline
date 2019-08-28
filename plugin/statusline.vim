@@ -140,6 +140,7 @@ fu! statusline#main(has_focus) abort "{{{2
         " Useful when scrolling, to know how far from the top/bottom of the file we are.
         "}}}
         return ' %1*%{statusline#tail_of_path()}%* '
+        \     .'%{&l:diff ? "[Diff]" : ""}'
         \     .'%='
         \     .'%w'
         \     .'%{
@@ -147,7 +148,6 @@ fu! statusline#main(has_focus) abort "{{{2
         \           ?     line(".").."/"..line("$")..repeat(" ", 16 - len(line(".").."/".line("$")))
         \           :     ""
         \        }'
-        \     .'%{&l:diff ? "[Diff]" : ""}'
     endif
 
     " Why do you use a no-break space?{{{
@@ -196,9 +196,8 @@ fu! statusline#main(has_focus) abort "{{{2
        \          .'%=%-8(%l,%c%) %p%% '
        \ : &bt is# 'quickfix'
        \ ? (get(w:, 'quickfix_title', '') =~# '\<TOC$'
-       \ ?      ''
-       \ :      (get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '))
-       \
+       \     ?      ''
+       \     :      (get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '))
        \      ."%.80{exists('w:quickfix_title')? '  '.w:quickfix_title : ''}"
        \      ."%=    %-15(%l/%L%) "
        \
@@ -206,15 +205,16 @@ fu! statusline#main(has_focus) abort "{{{2
        \       .' %1*%{statusline#tail_of_path()}%* '
        \       .'%-5r'
        \       .'%2*%{&modified && bufname("%") != "" && &bt isnot# "terminal" ? "[+]" : ""}%*'
-       \       .'%2*%-7{&paste ? "[paste]" : ""}%*'
-       \       .'%4{&ve is# "all" ? "[ve]" : ""}'
+       \       .'%2*%{&paste ? "[paste]" : ""}%*'
+       \       .'%{&ve is# "all" ? "[ve]" : ""}'
+       \       .'%{!exists("#auto_save_and_read") && exists("g:autosave_on_startup") ? "[no auto save]" : ""}'
+       \       .'%{&l:diff ? "[Diff]" : ""}'
        \       .'%='
        \       .'%-7{exists("*capslock#status") ? capslock#status() : ""}'
        \       .'%-5{exists("*session#status")  ? session#status()  : ""}'
        \       .'%-15{statusline#fugitive()}'
        \       .'%-8(%.5l,%.3v%)'
        \       .'%4p%% '
-       \       .'%{&l:diff ? "[Diff]" : ""}'
 endfu
 
 " This function can be called when we enter a window, or when we leave one.
