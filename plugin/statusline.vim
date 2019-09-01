@@ -66,11 +66,11 @@ fu! s:is_in_list_but_not_current() abort "{{{2
     return
     \      {'qfl':
     \              {-> index(
-    \                   map(deepcopy(s:list.entries), { i,v -> [v.bufnr, v.lnum, v.col]}),
+    \                   map(deepcopy(s:list.entries), {_,v -> [v.bufnr, v.lnum, v.col]}),
     \                   [s:cur_buf, s:cur_line, s:cur_col]) >= 0
     \              },
     \
-    \       'arg': {-> index(map(range(s:argc), { i,v -> argv(v) }), s:bufname) >= 0 }
+    \       'arg': {-> index(map(range(s:argc), {_,v -> argv(v)}), s:bufname) >= 0}
     \      }[s:list.name]
 endfu
 
@@ -90,7 +90,7 @@ fu! statusline#list_position() abort "{{{2
 
     let s:list = [
         \ {'name': 'qfl', 'entries': getqflist()},
-        \ {'name': 'arg', 'entries': map(range(argc()), { i,v -> argv(v)})}
+        \ {'name': 'arg', 'entries': map(range(argc()), {_,v -> argv(v)})}
         \ ][g:my_stl_list_position-1]
 
     if empty(s:list.entries)
@@ -140,7 +140,7 @@ fu! statusline#main(has_focus) abort "{{{2
         " Useful when scrolling, to know how far from the top/bottom of the file we are.
         "}}}
         return ' %1*%{statusline#tail_of_path()}%* '
-        \     .'%{&l:diff ? "[Diff]" : ""}'
+        \     .'%-7{&l:diff ? "[Diff]" : ""}'
         \     .'%='
         \     .'%w'
         \     .'%{
@@ -150,36 +150,6 @@ fu! statusline#main(has_focus) abort "{{{2
         \        }'
     endif
 
-    " Why do you use a no-break space?{{{
-    "
-    "     \       .' %1*%{statusline#tail_of_path()}%* '
-    "               ^
-    "               no-break space
-    "
-    " I want a space to create some  distance between the file path and the left
-    " edge of the screen.
-    " But if  we use  one, in Neovim,  when the pager  is displayed  (like after
-    " `:ls`), the  statusline is empty; it  seems the space is  repeated to fill
-    " the whole line.
-    "
-    " MWE:
-    "
-    "     $ nvim -Nu NONE +'set stl=foobar'
-    "     :ls
-    "     no foobar~
-    "
-    "     $ nvim -Nu NONE +'set stl=\ foobar'
-    "     :ls
-    "     6 spaces~
-    "
-    " Using a no-break space prevents this issue.
-    "
-    " ---
-    "
-    " Note that we still  lose the contents of the statusline  when the pager is
-    " displayed; but it's probably by design,  because Nvim seems to behave like
-    " that since at least `v0.3.0`.
-    "}}}
     " Why an indicator for the 'paste' option?{{{
     "
     " Atm there's  an issue in  Nvim, where 'paste' may  be wrongly set  when we
@@ -188,6 +158,23 @@ fu! statusline#main(has_focus) abort "{{{2
     "
     " Anyway,  this is  an option  which has  too many  effects; we  need to  be
     " informed immediately whenever it's set.
+    "}}}
+    " How to make sure two consecutive items are separated by a space?{{{
+    "
+    " If they have a fixed length (e.g. 12):
+    "
+    "     %-13{item}
+    "      ├─┘
+    "      └ make the length of the item is one cell longer than the text it displays
+    "        and left-align the item
+    "
+    " Otherwise append a space manually:
+    "
+    "     '%{item} '
+    "             ^
+    "
+    " The first syntax is better, because the space is appended on the condition
+    " the item is not empty; the second syntax adds a space unconditionally.
     "}}}
     return &ft is# 'freekeys'
        \ ?     '%=%-5l'
@@ -202,17 +189,17 @@ fu! statusline#main(has_focus) abort "{{{2
        \      ."%=    %-15(%l/%L%) "
        \
        \ :      '%{statusline#list_position()}'
-       \       .' %1*%{statusline#tail_of_path()}%* '
+       \       .' %1*%{statusline#tail_of_path()}%* '
        \       .'%-5r'
-       \       .'%2*%{&modified && bufname("%") != "" && &bt isnot# "terminal" ? "[+]" : ""}%*'
-       \       .'%2*%{&paste ? "[paste]" : ""}%*'
-       \       .'%{&ve is# "all" ? "[ve]" : ""}'
-       \       .'%{!exists("#auto_save_and_read") && exists("g:autosave_on_startup") ? "[no auto save]" : ""}'
-       \       .'%{&l:diff ? "[Diff]" : ""}'
+       \       .'%2*%{&modified && bufname("%") != "" && &bt isnot# "terminal" ? "[+]" : ""}%* '
+       \       .'%2*%-8{&paste ? "[paste]" : ""}%*'
+       \       .'%-5{&ve is# "all" ? "[ve]" : ""}'
+       \       .'%-15{!exists("#auto_save_and_read") && exists("g:autosave_on_startup") ? "[no auto save]" : ""}'
+       \       .'%-7{&l:diff ? "[Diff]" : ""}'
        \       .'%='
        \       .'%-7{exists("*capslock#status") ? capslock#status() : ""}'
        \       .'%-5{exists("*session#status")  ? session#status()  : ""}'
-       \       .'%-15{statusline#fugitive()}'
+       \       .'%{statusline#fugitive()}  '
        \       .'%-8(%.5l,%.3v%)'
        \       .'%4p%% '
 endfu
