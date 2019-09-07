@@ -34,6 +34,10 @@ let s:MAX_LIST_SIZE = 999
 "
 " See: https://github.com/vim/vim/issues/4406
 
+" FIXME: Press `gt` in this file to open the location window with all the todos.
+" Press `C-s` to open an entry in a new split window.
+" The statusline of the unfocused top window is noisy; it shouldn't.
+
 " Functions {{{1
 fu! statusline#fugitive() abort "{{{2
     if !get(g:, 'my_fugitive_branch', 0)
@@ -454,9 +458,9 @@ fu! statusline#tabpage_label(n) abort "{{{2
        \ ?     fnamemodify(name, ':h:t').'/'
        \ : getbufvar(bufnr, '&bt') is# 'quickfix'
        \ ?     getbufvar(bufnr, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
-       \ : name =~# 'fex_tree$'
+       \ : name =~# '^/tmp/.*/fex_tree$'
        \ ?     '└ /'
-       \ : name =~# 'fex_tree'
+       \ : name =~# '^/tmp/.*/fex_tree'
        \ ?     '└ '.fnamemodify(name, ':t')
        \ : empty(name)
        \ ?     '∅'
