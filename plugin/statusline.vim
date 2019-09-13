@@ -200,12 +200,22 @@ fu! statusline#main(has_focus) abort "{{{2
        \       .'%-5{&ve is# "all" ? "[ve]" : ""}'
        \       .'%-15{!exists("#auto_save_and_read") && exists("g:autosave_on_startup") ? "[no auto save]" : ""}'
        \       .'%-7{&l:diff ? "[Diff]" : ""}'
-       \       .'%='
        \       .'%-7{exists("*capslock#status") ? capslock#status() : ""}'
-       \       .'%-5{exists("*session#status")  ? session#status()  : ""}'
+       \       .'%='
        \       .'%{statusline#fugitive()}  '
+       \       .'%-5{exists("*session#status")  ? session#status()  : ""}'
        \       .'%-8(%.5l,%.3v%)'
        \       .'%4p%% '
+       " About the positions of the indicators.{{{
+       "
+       " We try to put all temporary indicators  on the left, where they are the
+       " most visible, and all the "lasting" indicators on the right.
+       "
+       " For example, if you enable  the fugitive indicator, you'll probably let
+       " it on for more than just a few seconds; so we put it on the right.
+       " OTOH, if you toggle `'ve'`  which enables the virtualedit indicator, it
+       " will probably be for just a few seconds; so we put it on the left.
+       "}}}
 endfu
 
 " This function can be called when we enter a window, or when we leave one.
