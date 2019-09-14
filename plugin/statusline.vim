@@ -491,7 +491,7 @@ fu! statusline#tail_of_path() abort "{{{2
        \ :  expand('%:p') =~# '^fugitive://'
        \ ?     '[fgt]'
        \ : tail is# ''
-       \ ?     '[No Name]'
+       \ ?     (&bt is# 'nofile' ? '[Scratch]' : '[No Name]')
        \ :     tail
 endfu
 
