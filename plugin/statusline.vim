@@ -87,9 +87,9 @@ fu! statusline#list_position() abort "{{{2
     let [s:bufname, s:argidx, s:argc]      = [bufname('%'), argidx(),  argc()]
 
     if g:my_stl_list_position ==# 1 && get(getqflist({'size': 0}), 'size', 0) > s:MAX_LIST_SIZE
-        return '[> '.s:MAX_LIST_SIZE.']'
+        return '[> '..s:MAX_LIST_SIZE..']'
     elseif g:my_stl_list_position ==# 2 && argc() > s:MAX_LIST_SIZE
-        return '[> '.s:MAX_LIST_SIZE.']'
+        return '[> '..s:MAX_LIST_SIZE..']'
     endif
 
     let s:list = [
@@ -116,7 +116,7 @@ fu! statusline#list_position() abort "{{{2
        \ ?       {'qfl': 'c', 'arg': 'a'}[s:list.name]
        \ :       {'qfl': 'ȼ', 'arg': 'ā'}[s:list.name]
        \   )
-       \   .'['.(idx + (s:list.name is# 'arg' ? 1 : 0)).'/'.size.']'
+       \ ..'['..(idx + (s:list.name is# 'arg' ? 1 : 0))..'/'..size..']'
 endfu
 
 " This function displays an item showing our position in the qfl or arglist.
@@ -139,17 +139,28 @@ fu! statusline#main(has_focus) abort "{{{2
         " buffer is not a quickfix buffer.
         " We want them only in a quickfix buffer.
         "}}}
-        " TODO: It would be nice to have a percentage indicator in the status line of a preview window.{{{
+        " Is there a more efficient way of getting the percentage through the file?{{{
         "
-        " Useful when scrolling, to know how far from the top/bottom of the file we are.
+        " Not sure, but you could try  to use `g:actual_curbuf` to check whether
+        " the buffer is displayed in a preview window.
+        " If it is, you would return a string containing `%p`.
+        " If it does not, you would return another string without `%p`.
+        "
+        "     return buffer_is_not_in_a_preview_window
+        "         \ ? ...
+        "         \ : ...
+        "
+        " `g:actual_curwin` or `g:statusline_winid` would be better (btw, what's
+        " the difference between the two?), but Nvim doesn't support them atm.
         "}}}
         return ' %1*%{statusline#tail_of_path()}%* '
-        \     .'%-7{&l:diff ? "[Diff]" : ""}'
-        \     .'%='
-        \     .'%w'
-        \     .'%{
+        \     ..'%-7{&l:diff ? "[Diff]" : ""}'
+        \     ..'%w'
+        \     ..'%='
+        \     ..'%{&l:pvw ? float2nr(100.0 * line(".")/line("$")).."%" : ""}'
+        \     ..'%{
         \           &bt is# "quickfix"
-        \           ?     line(".").."/"..line("$")..repeat(" ", 16 - len(line(".").."/".line("$")))
+        \           ?     line(".").."/"..line("$")..repeat(" ", 16 - len(line(".").."/"..line("$")))
         \           :     ""
         \        }'
     endif
@@ -183,29 +194,31 @@ fu! statusline#main(has_focus) abort "{{{2
     return &ft is# 'freekeys'
        \ ?     '%=%-5l'
        \ : &ft is# 'fex_tree'
-       \ ?     ' '.(get(b:, 'fex_curdir', '') is# '/' ? '/' : fnamemodify(get(b:, 'fex_curdir', ''), ':t'))
-       \          .'%=%-8(%l,%c%) %p%% '
+       \ ?     ' '..(get(b:, 'fex_curdir', '') is# '/' ? '/' : fnamemodify(get(b:, 'fex_curdir', ''), ':t'))
+       \          ..'%=%-8(%l,%c%) %p%% '
        \ : &bt is# 'quickfix'
        \ ? (get(w:, 'quickfix_title', '') =~# '\<TOC$'
        \     ?      ''
        \     :      (get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '))
-       \      ."%.80{exists('w:quickfix_title')? '  '.w:quickfix_title : ''}"
-       \      ."%=    %-15(%l/%L%) "
+       \      .."%.80{exists('w:quickfix_title')? '  '.w:quickfix_title : ''}"
+       \      .."%=    %-15(%l/%L%) "
        \
-       \ :      '%{statusline#list_position()}'
-       \       .' %1*%{statusline#tail_of_path()}%* '
-       \       .'%-5r'
-       \       .'%2*%{&modified && bufname("%") != "" && &bt isnot# "terminal" ? "[+]" : ""}%* '
-       \       .'%2*%-8{&paste ? "[paste]" : ""}%*'
-       \       .'%-5{&ve is# "all" ? "[ve]" : ""}'
-       \       .'%-15{!exists("#auto_save_and_read") && exists("g:autosave_on_startup") ? "[no auto save]" : ""}'
-       \       .'%-7{&l:diff ? "[Diff]" : ""}'
-       \       .'%-7{exists("*capslock#status") ? capslock#status() : ""}'
-       \       .'%='
-       \       .'%{statusline#fugitive()}  '
-       \       .'%-5{exists("*session#status")  ? session#status()  : ""}'
-       \       .'%-8(%.5l,%.3v%)'
-       \       .'%4p%% '
+       \ :       '%{statusline#list_position()}'
+       \       ..' %1*%{statusline#tail_of_path()}%* '
+       \       ..'%-5r'
+       \       ..'%w'
+       \       ..'%2*%{&modified && bufname("%") != "" && &bt isnot# "terminal" ? "[+]" : ""}%* '
+       \       ..'%2*%-8{&paste ? "[paste]" : ""}%*'
+       \       ..'%-5{&ve is# "all" ? "[ve]" : ""}'
+       \       ..'%-15{!exists("#auto_save_and_read") && exists("g:autosave_on_startup") ? "[no auto save]" : ""}'
+       \       ..'%-18{exists("b:auto_open_fold_mappings") ? "[auto open fold]" : ""}'
+       \       ..'%-7{&l:diff ? "[Diff]" : ""}'
+       \       ..'%-7{exists("*capslock#status") ? capslock#status() : ""}'
+       \       ..'%='
+       \       ..'%{statusline#fugitive()}  '
+       \       ..'%-5{exists("*session#status")  ? session#status()  : ""}'
+       \       ..'%-8(%.5l,%.3v%)'
+       \       ..'%4p%% '
        " About the positions of the indicators.{{{
        "
        " We try to put all temporary indicators  on the left, where they are the
@@ -215,6 +228,13 @@ fu! statusline#main(has_focus) abort "{{{2
        " it on for more than just a few seconds; so we put it on the right.
        " OTOH, if you toggle `'ve'`  which enables the virtualedit indicator, it
        " will probably be for just a few seconds; so we put it on the left.
+       "}}}
+       " TODO: Maybe we should remove all plugin-specific flags.{{{
+       "
+       " Instead, we could register a flag from a plugin via a public function.
+       "
+       " For inspiration, have a look at this:
+       " https://github.com/tpope/vim-flagship/blob/master/doc/flagship.txt#L33
        "}}}
 endfu
 
@@ -380,13 +400,13 @@ fu! statusline#tabline() abort "{{{2
 
         " set the tab page nr
         " used by the mouse to recognize the tab page on which we click
-        let s .= '%'.i.'T'
+        let s .= '%'..i..'T'
 
         " set the label by invoking another function `statusline#tabpage_label()`
-        let s .= ' %{statusline#tabpage_label('.i.')} │'
-        "         │                                  ├┘{{{
-        "         │                                  └ space and vertical line
-        "         │                                    to separate the label from the next one
+        let s .= ' %{statusline#tabpage_label('..i..')} │'
+        "         │                                    ├┘{{{
+        "         │                                    └ space and vertical line
+        "         │                                      to separate the label from the next one
         "         │
         "         └─ space to separate the label from the previous one
         "}}}
@@ -465,25 +485,25 @@ fu! statusline#tabpage_label(n) abort "{{{2
     return getbufvar(bufnr, '&bt', '') is# 'terminal'
        \ ?     '[term]'
        \ : name[-1:] is# '/'
-       \ ?     fnamemodify(name, ':h:t').'/'
+       \ ?     fnamemodify(name, ':h:t')..'/'
        \ : getbufvar(bufnr, '&bt') is# 'quickfix'
        \ ?     getbufvar(bufnr, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
        \ : name =~# '^/tmp/.*/fex_tree$'
        \ ?     '└ /'
        \ : name =~# '^/tmp/.*/fex_tree'
-       \ ?     '└ '.fnamemodify(name, ':t')
+       \ ?     '└ '..fnamemodify(name, ':t')
        \ : empty(name)
        \ ?     '∅'
        \ :     fnamemodify(name, ':t')
 endfu
 
 fu! statusline#tail_of_path() abort "{{{2
-    let tail = fnamemodify(expand('%:p'), ':t')
+    let tail = fnamemodify(@%, ':t')
 
     return &bt is# 'terminal'
        \ ?     '[term]'
        \ : &ft is# 'dirvish'
-       \ ?     '[dirvish] '.expand('%:p')
+       \ ?     '[dirvish] '..expand('%:p')
        \ : &bt is# 'quickfix'
        \ ?     get(b:, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
        \ : tail is# 'fex_tree'
