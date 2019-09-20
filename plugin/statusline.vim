@@ -207,19 +207,43 @@ fu! statusline#main(has_focus) abort "{{{2
        \       ..' %1*%{statusline#tail_of_path()}%* '
        \       ..'%-5r'
        \       ..'%w'
-       \       ..'%2*%{&modified && bufname("%") != "" && &bt isnot# "terminal" ? "[+]" : ""}%* '
        \       ..'%2*%-8{&paste ? "[paste]" : ""}%*'
        \       ..'%-5{&ve is# "all" ? "[ve]" : ""}'
-       \       ..'%-15{!exists("#auto_save_and_read") && exists("g:autosave_on_startup") ? "[no auto save]" : ""}'
-       \       ..'%-18{exists("b:auto_open_fold_mappings") ? "[auto open fold]" : ""}'
+       "\ NAS = No Auto Save
+       \       ..'%-6{!exists("#auto_save_and_read") && exists("g:autosave_on_startup") ? "[NAS]" : ""}'
+       "\ AOF = Auto Open Fold
+       \       ..'%-6{exists("b:auto_open_fold_mappings") ? "[AOF]" : ""}'
        \       ..'%-7{&l:diff ? "[Diff]" : ""}'
        \       ..'%-7{exists("*capslock#status") ? capslock#status() : ""}'
+       \       ..'%2*%{&modified && bufname("%") != "" && &bt isnot# "terminal" ? "[+]" : ""}%*'
        \       ..'%='
        \       ..'%{statusline#fugitive()}  '
        \       ..'%-5{exists("*session#status")  ? session#status()  : ""}'
        \       ..'%-8(%.5l,%.3v%)'
        \       ..'%4p%% '
        " About the positions of the indicators.{{{
+       "
+       " Let the modified flag (`[+]`) at the end of the left part of the status line.
+       "
+       "     \       ..'%2*%{&modified && ... ? "[+]" : ""}%*'
+       "
+       " If you move  it before, then you'll need to append  a space to separate
+       " the flag from the next one:
+       "
+       "     \       ..'%2*%{&modified && ... ? "[+] " : ""}%*'
+       "                                            ^
+       "
+       " But the space will be highlighted, which we don't want.
+       " So, you'll need to move it outside `%{}`:
+       "
+       "     \       ..'%2*%{&modified && ... ? "[+]" : ""}%* '
+       "                                                     ^
+       "
+       " But  this means  that the  space will  be included  in the  status line
+       " UNconditionally. As a  result, when the  buffer is not  modified, there
+       " will be 2 spaces between the flags surrounding the missing `[+]`.
+       "
+       " ---
        "
        " We try to put all temporary indicators  on the left, where they are the
        " most visible, and all the "lasting" indicators on the right.
