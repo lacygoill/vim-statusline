@@ -259,6 +259,17 @@ fu! statusline#main(has_focus) abort "{{{2
        "
        " For inspiration, have a look at this:
        " https://github.com/tpope/vim-flagship/blob/master/doc/flagship.txt#L33
+       "
+       " ---
+       "
+       " Atm, `vim-fex` relies  on `vim-statusline` to correctly  display in the
+       " status line, the name of the directory whose contents is being viewed.
+       "
+       " That is not good.
+       " Our plugins should have as few dependencies as possible.
+       " A `fex_tree` buffer should set its own status line.
+       "
+       " Make sure no other plugin relies on `vim-statusline` to set its status line.
        "}}}
 endfu
 
@@ -337,17 +348,17 @@ endfu
 "
 " Example:
 "
-"          ┌─ left justification
-"          │ ┌─ width of the group
+"          ┌ left justification
+"          │ ┌ width of the group
 "          │ │
-"          │ │       ┌ various items inside the group
-"          │ │ ┌─────┤
+"          │ │ ┌ various items inside the group
+"          │ │ ├─────┐
 "         %-15(%l,%c%V%)
-"         │           └┤
-"         │            └ end of group
+"         │           ├┘
+"         │           └ end of group
 "         │
-"         └─ beginning of group
-"            the percent is separated from the open parenthesis because of the width field
+"         └ beginning of group
+"           the percent is separated from the open parenthesis because of the width field
 "
 " For more info, `:h 'stl`:
 "
@@ -432,7 +443,7 @@ fu! statusline#tabline() abort "{{{2
         "         │                                    └ space and vertical line
         "         │                                      to separate the label from the next one
         "         │
-        "         └─ space to separate the label from the previous one
+        "         └ space to separate the label from the previous one
         "}}}
     endfor
 
