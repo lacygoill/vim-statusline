@@ -55,14 +55,14 @@ fu! s:is_in_list_and_current() abort "{{{2
     \                ||
     \                        [s:cur_buf,         s:cur_line]
     \                    ==# [s:cur_entry.bufnr, s:cur_entry.lnum]
-    \                    &&   s:cur_entry.col ==# 0
+    \                    &&  s:cur_entry.col == 0
     \                ||
-    \                         s:cur_buf
-    \                    ==#  s:cur_entry.bufnr
+    \                        s:cur_buf
+    \                    ==  s:cur_entry.bufnr
     \                    && [s:cur_entry.lnum, s:cur_entry.col] ==# [0, 0]
     \               },
     \
-    \        'arg': {-> s:bufname ==# argv(s:argidx)}
+    \        'arg': {-> s:bufname is# argv(s:argidx)}
     \      }[s:list.name]
 endfu
 
@@ -86,9 +86,9 @@ fu! statusline#list_position() abort "{{{2
     let [s:cur_col, s:cur_line, s:cur_buf] = [col('.'),     line('.'), bufnr('%')]
     let [s:bufname, s:argidx, s:argc]      = [bufname('%'), argidx(),  argc()]
 
-    if g:my_stl_list_position ==# 1 && get(getqflist({'size': 0}), 'size', 0) > s:MAX_LIST_SIZE
+    if g:my_stl_list_position == 1 && get(getqflist({'size': 0}), 'size', 0) > s:MAX_LIST_SIZE
         return '[> '..s:MAX_LIST_SIZE..']'
-    elseif g:my_stl_list_position ==# 2 && argc() > s:MAX_LIST_SIZE
+    elseif g:my_stl_list_position == 2 && argc() > s:MAX_LIST_SIZE
         return '[> '..s:MAX_LIST_SIZE..']'
     endif
 
@@ -157,7 +157,7 @@ fu! statusline#main(has_focus) abort "{{{2
         \     ..'%-7{&l:diff ? "[Diff]" : ""}'
         \     ..'%w'
         \     ..'%='
-        \     ..'%{&l:pvw ? float2nr(100.0 * line(".")/line("$")).."%" : ""}'
+        \     ..'%{&l:pvw ? float2nr(100.0 * line(".")/line("$")).."% " : ""}'
         \     ..'%{
         \           &bt is# "quickfix"
         \           ?     line(".").."/"..line("$")..repeat(" ", 16 - len(line(".").."/"..line("$")))
@@ -431,37 +431,37 @@ fu! statusline#tabline() abort "{{{2
     for i in range(1, tabpagenr('$'))
         " color the label of the current tab page with the HG TabLineSel
         " the others with TabLine
-        let s .= i ==# tabpagenr() ? '%#TabLineSel#' : '%#TabLine#'
+        let s ..= i == tabpagenr() ? '%#TabLineSel#' : '%#TabLine#'
 
         " set the tab page nr
         " used by the mouse to recognize the tab page on which we click
-        let s .= '%'..i..'T'
+        let s ..= '%'..i..'T'
 
         " set the label by invoking another function `statusline#tabpage_label()`
-        let s .= ' %{statusline#tabpage_label('..i..')} │'
-        "         │                                    ├┘{{{
-        "         │                                    └ space and vertical line
-        "         │                                      to separate the label from the next one
-        "         │
-        "         └ space to separate the label from the previous one
+        let s ..= ' %{statusline#tabpage_label('..i..')} │'
+        "          │                                    ├┘{{{
+        "          │                                    └ space and vertical line
+        "          │                                      to separate the label from the next one
+        "          │
+        "          └ space to separate the label from the previous one
         "}}}
     endfor
 
     " color the rest of the line with TabLineFill and reset tab page nr
-    let s .= '%#TabLineFill#%T'
+    let s ..= '%#TabLineFill#%T'
 
     " Commented because I don't need a closing label, I don't use the mouse.
     " Keep it for educational purpose.
     "
     " add a closing label
-    "                       ┌ %X    = closing label
-    "                       │ 999   = nr of the tab page to close when we click on the label
-    "                       │         (big nr = last tab page currently opened)
-    "                       │ close = text to display
-    "                       ├────────┐
-    " let s .= '%=%#TabLine#%999Xclose'
-    "           ├┘
-    "           └ right-align next labels
+    "                        ┌ %X    = closing label
+    "                        │ 999   = nr of the tab page to close when we click on the label
+    "                        │         (big nr = last tab page currently opened)
+    "                        │ close = text to display
+    "                        ├────────┐
+    " let s ..= '%=%#TabLine#%999Xclose'
+    "            ├┘
+    "            └ right-align next labels
 
     return s
 endfu
