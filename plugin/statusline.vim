@@ -5,23 +5,22 @@ let g:loaded_statusline = 1
 
 let s:MAX_LIST_SIZE = 999
 
-" TODO: {{{1
-
-" Read the following links to improve the statusline.
+" TODO: Read the following links to improve the statusline.{{{
 
 " Blog post talking about status line customization:
 " http://www.blaenkdenum.com/posts/a-simpler-vim-statusline
 
 " Vim Powerline-like status line without the need of any plugin:
 " https://gist.github.com/ericbn/f2956cd9ec7d6bff8940c2087247b132
-
-" TODO:
-" If possible, make the `%{statusline#list_position()}` item local to the current window.
+"}}}
+" TODO: If possible, make the `%{statusline#list_position()}` item local to the current window.{{{
+"
 " For inspiration, study `vim-flagship` first.
-
-" TODO: try to simplify the code, using the Vim patch 8.1.1372
+"}}}
+" TODO: try to simplify the code, using the Vim patch 8.1.1372{{{
 "
 " https://github.com/vim/vim/commit/1c6fd1e100fd0457375642ec50d483bcc0f61bb2
+"
 " Wait for Nvim to merge the patch.
 "
 " The patch introduces the variables `g:statusline_winid` and `g:actual_curwin`.
@@ -33,10 +32,36 @@ let s:MAX_LIST_SIZE = 999
 "     let active = winid() == g:statusline_winid
 "
 " See: https://github.com/vim/vim/issues/4406
-
-" FIXME: Press `gt` in this file to open the location window with all the todos.
+"}}}
+" FIXME: The status line is sometimes wrongly noisy.{{{
+"
+" Press `gt` in this file to open the location window with all the todos.
 " Press `C-s` to open an entry in a new split window.
 " The statusline of the unfocused top window is noisy; it shouldn't.
+"
+" ---
+"
+"     $ vim -d ~/.bashrc ~/.zshrc
+"
+" Why is the statusline in the right window noisy?
+" Focus it, then get  back to the first window: it gets quiet,  which is what we
+" wanted right from the start.
+"
+" Same issue if we start Vim with `-O`.
+"
+" I think the  issue is that BufWinEnter  or WinEnter is probably  fired for all
+" windows, which makes all windows receive a noisy statusline:
+"
+"     au BufWinEnter,WinEnter  *  setl stl=%!statusline#main(1)
+"                                                            │
+"                                                            └ has focus
+"
+" But WinLeave is not fired as we could expect:
+"
+"     au WinLeave              *  setl stl=%!statusline#main(0)
+"
+" So, the statuslines are not reset to be quiet.
+"}}}
 
 " Functions {{{1
 fu! statusline#fugitive() abort "{{{2
@@ -49,7 +74,7 @@ endfu
 fu! s:is_in_list_and_current() abort "{{{2
     return
     \      { 'qfl':
-    \               { ->
+    \               {->
     \                        [s:cur_buf,         s:cur_line,       s:cur_col]
     \                    ==# [s:cur_entry.bufnr, s:cur_entry.lnum, s:cur_entry.col]
     \                ||
