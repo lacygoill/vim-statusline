@@ -64,14 +64,14 @@ let s:MAX_LIST_SIZE = 999
 "}}}
 
 " Functions {{{1
-fu! statusline#fugitive() abort "{{{2
+fu statusline#fugitive() abort "{{{2
     if !get(g:, 'my_fugitive_branch', 0)
         return ''
     endif
     return exists('*fugitive#statusline') ? fugitive#statusline() : ''
 endfu
 
-fu! s:is_in_list_and_current() abort "{{{2
+fu s:is_in_list_and_current() abort "{{{2
     return
     \      { 'qfl':
     \               {->
@@ -91,7 +91,7 @@ fu! s:is_in_list_and_current() abort "{{{2
     \      }[s:list.name]
 endfu
 
-fu! s:is_in_list_but_not_current() abort "{{{2
+fu s:is_in_list_but_not_current() abort "{{{2
     return
     \      {'qfl':
     \              {-> index(
@@ -103,7 +103,7 @@ fu! s:is_in_list_but_not_current() abort "{{{2
     \      }[s:list.name]
 endfu
 
-fu! statusline#list_position() abort "{{{2
+fu statusline#list_position() abort "{{{2
     if !get(g:, 'my_stl_list_position', 0)
         return ''
     endif
@@ -156,7 +156,7 @@ endfu
 "     nno  <silent>  ]oi  :let g:my_stl_list_position = 0<cr>
 "     nno  <silent>  coi  :let g:my_stl_list_position = !get(g:, 'my_stl_list_position', 0)<cr>
 
-fu! statusline#main(has_focus) abort "{{{2
+fu statusline#main(has_focus) abort "{{{2
     if !a:has_focus
         " Do not use `%-16{...}` to distance the position in the quickfix list from the right border.{{{
         "
@@ -451,7 +451,7 @@ endfu
 "    └────────────────────────────────┴─────────────────────────────────────────────────────┘
 " }}}3
 
-fu! statusline#tabline() abort "{{{2
+fu statusline#tabline() abort "{{{2
     let s = ''
     for i in range(1, tabpagenr('$'))
         " color the label of the current tab page with the HG TabLineSel
@@ -516,7 +516,7 @@ endfu
 "    │ the rest of the tabline │ TabLineFill │
 "    └─────────────────────────┴─────────────┘
 "}}}
-fu! statusline#tabpage_label(n) abort "{{{2
+fu statusline#tabpage_label(n) abort "{{{2
     "             ┌ I give you the nr of a tab page
     "             ├─────┐
     let buflist = tabpagebuflist(a:n)
@@ -557,7 +557,7 @@ fu! statusline#tabpage_label(n) abort "{{{2
        \ :     fnamemodify(name, ':t')
 endfu
 
-fu! statusline#tail_of_path() abort "{{{2
+fu statusline#tail_of_path() abort "{{{2
     let tail = fnamemodify(@%, ':t')
 
     return &bt is# 'terminal'
