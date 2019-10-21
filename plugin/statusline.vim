@@ -517,6 +517,143 @@ endfu
 "    └─────────────────────────┴─────────────┘
 "}}}
 fu statusline#tabpage_label(n) abort "{{{2
+    let [curtab, lasttab] = [tabpagenr(), tabpagenr('$')]
+
+    " no more than `x` labels on the right/left of the label currently focused
+    let x = 1
+    " Shortest Distance From Ends
+    let sdfe = min([curtab - 1, lasttab - curtab])
+    " How did you get this expression?{{{
+    "
+    " We don't want to see a label for a tab page which is too far away:
+    "
+    "     if abs(curtab - a:n) > max_dist | return '' | endif
+    "                            ^^^^^^^^
+    "
+    " Now, suppose we  want to see 2 labels  on the left and right  of the label
+    " currently focused, but not more:
+    "
+    "     if abs(curtab - a:n) > 2 | return '' | endif
+    "                            ^
+    "
+    " If we're in the middle of a big enough tabline, it will look like this:
+    "
+    "       | | | l | l | L | l | l | | |
+    "                 │   │
+    "                 │   └ label currently focused
+    "                 └ some label
+    "
+    " Problem:
+    "
+    " Suppose we focus the last but two tab page, the tabline becomes:
+    "
+    "     | | | l | l | L | l | l
+    "
+    " Now suppose we focus the last but one tab page, the tabline becomes:
+    "
+    "     | | | | l | l | L | l
+    "
+    " Notice how the tabline  only contains 4 named labels, while  it had 5 just
+    " before.   We want  the tabline  to always  have the  same amount  of named
+    " labels, here 5:
+    "
+    "     | | | l | l | l | L | l
+    "           ^
+    "           to get this one we need `max_dist = 3`
+    "
+    " It appears that focusing the last but  one tab page is a special case, for
+    " which `max_dist` should be `3` and not `2`.
+    " Similarly, when we focus  the last tab page, we need  `max_dist` to be `4`
+    " and not `2`:
+    "
+    "     | | | l | l | l | l | L
+    "           ^   ^
+    "           to get those, we need `max_dist = 4`
+    "
+    " So, we need to add a number to `2`:
+    "
+    "    ┌──────────────────────────────────────────┬──────────┐
+    "    │              where is focus              │ max_dist │
+    "    ├──────────────────────────────────────────┼──────────┤
+    "    │ not on last nor on last but one tab page │ 2+0      │
+    "    ├──────────────────────────────────────────┼──────────┤
+    "    │ on last but one tab page                 │ 2+1      │
+    "    ├──────────────────────────────────────────┼──────────┤
+    "    │ on last tab page                         │ 2+2      │
+    "    └──────────────────────────────────────────┴──────────┘
+    "
+    " But what is the expression to get this number?
+    " Answer:
+    " We need to consider two cases depending on whether `lasttab - curtab >= 2`
+    " is true or false.
+    "
+    " If it's true, it  means that we're not near enough the  end of the tabline
+    " to worry; we are in the general case for which `max_dist = 2` is correct.
+    "
+    " If it's false, it means that we're too  close from the end, and we need to
+    " increase `max_dist`.
+    " By how much? The difference between the operands:
+    "
+    "     2 - (lasttab - curtab)
+    "
+    " The pseudo-code to get `max_dist` is thus:
+    "
+    "     if lasttab - curtab >= 2
+    "         max_dist = 2
+    "     else
+    "         max_dist = 2 + (2 - (lasttab - curtab))
+    "
+    " Now we also need to handle the case where we're too close from the *start*
+    " of the tabline:
+    "
+    "     if curtab - 1 >= 2
+    "         max_dist = 2
+    "     else
+    "         max_dist = 2 + (2 - (curtab - 1))
+    "
+    " Finally, we have to merge the two snippets:
+    "
+    "     sdfe = min([curtab - 1, lasttab - curtab])
+    "     if sdfe >= 2
+    "         max_dist = 2
+    "     else
+    "         max_dist = 2 + (2 - sdfe)
+    "
+    " Which can be generalized to an arbitrary number of labels, by replacing `2` with `x`:
+    "
+    "     sdfe = min([curtab - 1, lasttab - curtab])
+    "     if sdfe >= x
+    "         max_dist = x
+    "     else
+    "         max_dist = x + (x - sdfe)
+    "}}}
+    let max_dist = x + (sdfe >= x ? 0 : x - sdfe)
+    " Alternative:{{{
+    " for 3 labels:{{{
+    "
+    "     let max_dist =
+    "     \   index([1, lasttab], curtab) != -1 ? 1+1
+    "     \ :                                     1+0
+    "}}}
+    " for 5 labels:{{{
+    "
+    "     let max_dist =
+    "     \   index([1, lasttab],   curtab) != -1 ? 2+2
+    "     \ : index([2, lasttab-1], curtab) != -1 ? 2+1
+    "     \ :                                       2+0
+    "}}}
+    " for 7 labels:{{{
+    "
+    "     let max_dist =
+    "     \   index([1, lasttab],   curtab) != -1 ? 3+3
+    "     \ : index([2, lasttab-1], curtab) != -1 ? 3+2
+    "     \ : index([3, lasttab-2], curtab) != -1 ? 3+1
+    "     \ :                                       3+0
+    "}}}
+    "}}}
+
+    if abs(curtab - a:n) > max_dist | return '' | endif
+
     "             ┌ I give you the nr of a tab page
     "             ├─────┐
     let buflist = tabpagebuflist(a:n)
@@ -542,7 +679,7 @@ fu statusline#tabpage_label(n) abort "{{{2
     "
     "     get(get(getwininfo(win_getid(winnr, a:n)), 0, {}), 'loclist', 0)
 
-    return getbufvar(bufnr, '&bt', '') is# 'terminal'
+    let label = getbufvar(bufnr, '&bt', '') is# 'terminal'
        \ ?     '[term]'
        \ : name[-1:] is# '/'
        \ ?     fnamemodify(name, ':h:t')..'/'
@@ -555,6 +692,28 @@ fu statusline#tabpage_label(n) abort "{{{2
        \ : empty(name)
        \ ?     '∅'
        \ :     fnamemodify(name, ':t')
+    " Format the label so that it never exceeds 10 characters, and is centered.{{{
+    "
+    " This  is useful  to prevent  the tabline  from "dancing"  when we  focus a
+    " different window in the same tab page  (e.g. happens when you focus the qf
+    " window, or leave it).
+    "}}}
+    " What about multibyte characters?{{{
+    "
+    " Yes, we should write sth like:
+    "
+    "     let label = matchstr(label, repeat('.', '10'))
+    "     let len = strchars(label, 1)
+    "
+    " But I'm concerned about the impact on Vim's performance.
+    " I don't know how often this function is evaluated.
+    " Anyway,  we will  rarely edit  files  with multibyte  characters in  their
+    " names...
+    "}}}
+    let label = label[:9]
+    let len = len(label)
+    let cnt = (10 - len)/2
+    return repeat(' ', cnt)..label..repeat(' ', cnt+len%2)
 endfu
 
 fu statusline#tail_of_path() abort "{{{2
