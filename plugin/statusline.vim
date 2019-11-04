@@ -234,6 +234,7 @@ fu statusline#main(has_focus) abort "{{{2
        \       ..'%w'
        \       ..'%2*%-8{&paste ? "[paste]" : ""}%*'
        \       ..'%-5{&ve is# "all" ? "[ve]" : ""}'
+       \       ..'%-12{&dip =~# "iwhiteall" ? "[iwhiteall]" : ""}'
        "\ NAS = No Auto Save
        \       ..'%-6{!exists("#auto_save_and_read") && exists("g:autosave_on_startup") ? "[NAS]" : ""}'
        "\ AOF = Auto Open Fold
