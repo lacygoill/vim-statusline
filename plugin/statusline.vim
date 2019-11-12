@@ -539,7 +539,7 @@ fu statusline#tabpage_label(n) abort "{{{2
     "
     " If we're in the middle of a big enough tabline, it will look like this:
     "
-    "       | | | l | l | L | l | l | | |
+    "       | | | a | a | A | a | a | | |
     "                 │   │
     "                 │   └ label currently focused
     "                 └ some label
@@ -548,17 +548,17 @@ fu statusline#tabpage_label(n) abort "{{{2
     "
     " Suppose we focus the last but two tab page, the tabline becomes:
     "
-    "     | | | l | l | L | l | l
+    "     | | | a | a | A | a | a
     "
     " Now suppose we focus the last but one tab page, the tabline becomes:
     "
-    "     | | | | l | l | L | l
+    "     | | | | a | a | A | a
     "
     " Notice how the tabline  only contains 4 named labels, while  it had 5 just
     " before.   We want  the tabline  to always  have the  same amount  of named
     " labels, here 5:
     "
-    "     | | | l | l | l | L | l
+    "     | | | a | a | a | A | a
     "           ^
     "           to get this one we need `max_dist = 3`
     "
@@ -567,7 +567,7 @@ fu statusline#tabpage_label(n) abort "{{{2
     " Similarly, when we focus  the last tab page, we need  `max_dist` to be `4`
     " and not `2`:
     "
-    "     | | | l | l | l | l | L
+    "     | | | a | a | a | a | A
     "           ^   ^
     "           to get those, we need `max_dist = 4`
     "
@@ -653,7 +653,7 @@ fu statusline#tabpage_label(n) abort "{{{2
     "}}}
     "}}}
 
-    if abs(curtab - a:n) > max_dist | return '' | endif
+    if abs(curtab - a:n) > max_dist | return a:n | endif
 
     "             ┌ I give you the nr of a tab page
     "             ├─────┐
