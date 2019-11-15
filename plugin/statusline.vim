@@ -218,6 +218,8 @@ fu statusline#main(has_focus) abort "{{{2
     "}}}
     return &ft is# 'freekeys'
        \ ?     '%=%-5l'
+       \ : &ft is# 'undotree'
+       \ ?     "%=%{line('.')..'/'..line('$')..' '}"
        \ : &ft is# 'fex_tree'
        \ ?     ' '..(get(b:, 'fex_curdir', '') is# '/' ? '/' : fnamemodify(get(b:, 'fex_curdir', ''), ':t'))
        \          ..'%=%-8(%l,%c%) %p%% '
@@ -728,6 +730,8 @@ fu statusline#tail_of_path() abort "{{{2
        \ ?     get(b:, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
        \ : tail is# 'fex_tree'
        \ ?     '/'
+       \ : tail =~# '^diffpanel_\d\+$'
+       \ ?     ''
        \ :  expand('%:p') =~# '^fugitive://'
        \ ?     '[fgt]'
        \ : tail is# ''
