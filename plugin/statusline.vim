@@ -36,7 +36,7 @@ let s:MAX_LIST_SIZE = 999
 " FIXME: The status line is sometimes wrongly noisy.{{{
 "
 " Press `gt` in this file to open the location window with all the todos.
-" Press `C-s` to open an entry in a new split window.
+" Press `C-w CR` to open an entry in a new split window.
 " The statusline of the unfocused top window is noisy; it shouldn't.
 "
 " ---
