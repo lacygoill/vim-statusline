@@ -3,7 +3,7 @@ if exists('g:loaded_statusline')
 endif
 let g:loaded_statusline = 1
 
-let s:MAX_LIST_SIZE = 999
+const s:MAX_LIST_SIZE = 999
 
 " TODO: Read the following links to improve the statusline.{{{
 
@@ -43,119 +43,27 @@ let s:MAX_LIST_SIZE = 999
 "
 "     $ vim -d ~/.bashrc ~/.zshrc
 "
-" Why is the statusline in the right window noisy?
-" Focus it, then get  back to the first window: it gets quiet,  which is what we
+" Why is the statusline in the left window noisy?
+" Focus it, then get back to the second  window: it gets quiet, which is what we
 " wanted right from the start.
 "
 " Same issue if we start Vim with `-O`.
 "
-" I think the  issue is that BufWinEnter  or WinEnter is probably  fired for all
-" windows, which makes all windows receive a noisy statusline:
+" I think  the issue is that  `BufWinEnter` or `WinEnter` is  probably fired for
+" all windows, which makes all windows receive a noisy statusline:
 "
 "     au BufWinEnter,WinEnter  *  setl stl=%!statusline#main(1)
 "                                                            │
 "                                                            └ has focus
 "
-" But WinLeave is not fired as we could expect:
+" But `WinLeave` is not fired as we could expect:
 "
 "     au WinLeave              *  setl stl=%!statusline#main(0)
 "
 " So, the statuslines are not reset to be quiet.
 "}}}
 
-" Functions {{{1
-fu statusline#fugitive() abort "{{{2
-    if !get(g:, 'my_fugitive_branch', 0)
-        return ''
-    endif
-    return exists('*fugitive#statusline') ? fugitive#statusline() : ''
-endfu
-
-fu s:is_in_list_and_current() abort "{{{2
-    return
-    \      { 'qfl':
-    \               {->
-    \                        [s:cur_buf,         s:cur_line,       s:cur_col]
-    \                    ==# [s:cur_entry.bufnr, s:cur_entry.lnum, s:cur_entry.col]
-    \                ||
-    \                        [s:cur_buf,         s:cur_line]
-    \                    ==# [s:cur_entry.bufnr, s:cur_entry.lnum]
-    \                    &&  s:cur_entry.col == 0
-    \                ||
-    \                        s:cur_buf
-    \                    ==  s:cur_entry.bufnr
-    \                    && [s:cur_entry.lnum, s:cur_entry.col] ==# [0, 0]
-    \               },
-    \
-    \        'arg': {-> s:bufname is# argv(s:argidx)}
-    \      }[s:list.name]
-endfu
-
-fu s:is_in_list_but_not_current() abort "{{{2
-    return
-    \      {'qfl':
-    \              {-> index(
-    \                   map(deepcopy(s:list.entries), {_,v -> [v.bufnr, v.lnum, v.col]}),
-    \                   [s:cur_buf, s:cur_line, s:cur_col]) >= 0
-    \              },
-    \
-    \       'arg': {-> index(map(range(s:argc), {_,v -> argv(v)}), s:bufname) >= 0}
-    \      }[s:list.name]
-endfu
-
-fu statusline#list_position() abort "{{{2
-    if !get(g:, 'my_stl_list_position', 0)
-        return ''
-    endif
-
-    let [s:cur_col, s:cur_line, s:cur_buf] = [col('.'),     line('.'), bufnr('%')]
-    let [s:bufname, s:argidx, s:argc]      = [bufname('%'), argidx(),  argc()]
-
-    if g:my_stl_list_position == 1 && get(getqflist({'size': 0}), 'size', 0) > s:MAX_LIST_SIZE
-        return '[> '..s:MAX_LIST_SIZE..']'
-    elseif g:my_stl_list_position == 2 && argc() > s:MAX_LIST_SIZE
-        return '[> '..s:MAX_LIST_SIZE..']'
-    endif
-
-    let s:list = [
-        \ {'name': 'qfl', 'entries': getqflist()},
-        \ {'name': 'arg', 'entries': map(range(argc()), {_,v -> argv(v)})}
-        \ ][g:my_stl_list_position-1]
-
-    if empty(s:list.entries)
-        return '[]'
-    endif
-
-    let info = { 'qfl': getqflist({'idx':  0, 'size': 0}),
-        \        'arg': {'idx':  argidx(), 'size': argc()},
-        \ }[s:list.name]
-
-    if len(info) < 2 | return '[]' | endif
-
-    let [idx, size] = [info.idx, info.size]
-    let s:cur_entry = s:list.entries[idx-1]
-
-    return ( s:is_in_list_and_current()()
-       \ ?       {'qfl': 'C', 'arg': 'A'}[s:list.name]
-       \ :   s:is_in_list_but_not_current()()
-       \ ?       {'qfl': 'c', 'arg': 'a'}[s:list.name]
-       \ :       {'qfl': 'ȼ', 'arg': 'ā'}[s:list.name]
-       \   )
-       \ ..'['..(idx + (s:list.name is# 'arg' ? 1 : 0))..'/'..size..']'
-endfu
-
-" This function displays an item showing our position in the qfl or arglist.
-"
-" It only works when `g:my_stl_list_position` is set to 1 (which is not the case
-" by default).   To toggle  the display,  install autocmds  which set  the value
-" automatically when the qfl or arglist is populated.
-"
-" And/or use mappings, such as:
-"
-"     nno  <silent>  [oi  :let g:my_stl_list_position = 1<cr>
-"     nno  <silent>  ]oi  :let g:my_stl_list_position = 0<cr>
-"     nno  <silent>  coi  :let g:my_stl_list_position = !get(g:, 'my_stl_list_position', 0)<cr>
-
+" Interface {{{1
 fu statusline#main(has_focus) abort "{{{2
     if !a:has_focus
         " Do not use `%-16{...}` to distance the position in the quickfix list from the right border.{{{
@@ -305,15 +213,15 @@ endfu
 
 " Treat a qf buffer separately.{{{3
 "
-" For a qf buffer, the default local value of 'stl' can be found here:
+" For a qf buffer, the default local value of `'stl'` can be found here:
 "
 "     $VIMRUNTIME/ftplugin/qf.vim
 "
-" It's important  to treat it  separately, because  our default value  for 'stl'
+" It's important to  treat it separately, because our default  value for `'stl'`
 " wouldn't give us much information in a qf window. In particular, we would miss
 " its title.
 
-" Do NOT assume that the expression for non-focused windows will be evaluated only in the window you leave. {{{3
+" Do *not* assume that the expression for non-focused windows will be evaluated only in the window you leave. {{{3
 "
 " `main(1)` will be evaluated only for the window to which we give the focus.
 " But `main(0)` will be evaluated for ANY window which doesn't have the focus.
@@ -352,52 +260,34 @@ endfu
 "     ?...
 "     :...
 
-" %m {{{3
-
-"     %m                                ✘
-"
-" Can't use this because we want the flag to be colored by HG `User2`.
-"
-"     (&modified ? '%2*%m%*' : '%m')    ✘
-"
-" Can't use  this because `&modified`  will be evaluated  in the context  of the
-" window and buffer which has the focus. So the state of the focused window will
-" be, wrongly, reflected in ALL statuslines.
-"
-"     %2*%{&modified ? "[+]" : ""}%*    ✔
-"
-" The solution is to use the `%{}` item, because the expression inside the curly
-" braces  is evaluated  in the  context of  the window  to which  the statusline
-" belongs.
-
 " %(%) {{{3
 "
 " Useful to set the desired width / justification of a group of items.
 "
 " Example:
 "
-"          ┌ left justification
-"          │ ┌ width of the group
-"          │ │
-"          │ │ ┌ various items inside the group
-"          │ │ ├─────┐
-"         %-15(%l,%c%V%)
-"         │           ├┘
-"         │           └ end of group
-"         │
-"         └ beginning of group
-"           the percent is separated from the open parenthesis because of the width field
+"      ┌ left justification
+"      │ ┌ width of the group
+"      │ │
+"      │ │ ┌ various items inside the group (%l, %c, %V)
+"      │ │ ├─────┐
+"     %-15(%l,%c%V%)
+"     │           ├┘
+"     │           └ end of group
+"     │
+"     └ beginning of group
+"       the percent is separated from the open parenthesis because of the width field
 "
 " For more info, `:h 'stl`:
 "
-"     ( - Start of item group.  Can  be used for setting the width and alignment
-"                               of a section.  Must be followed by %) somewhere.
+" > ( - Start of item group.  Can  be used for setting the width and alignment
+" >                           of a section.  Must be followed by %) somewhere.
 "
-"     ) - End of item group.    No width fields allowed.
+" > ) - End of item group.    No width fields allowed.
 
-" -42  field {{{3
+" -123  field {{{3
 
-" Set the width of a field to 42 cells.
+" Set the width of a field to 123 cells.
 "
 " Can be used (after the 1st percent sign) with all kinds of items:
 "
@@ -405,21 +295,21 @@ endfu
 "    - `%{...}`
 "    - `%(...%)`
 "
-" Useful to prepend a space to an item, but only if it's not empty:
+" Useful to append a space to an item, but only if it's not empty:
 "
-"     %-42item
+"     %-12item
 "         ├──┘
-"         └ suppose that the width of the item is 41
+"         └ suppose that the width of the item is 11
 "
 " The width  of the field  is one unit  greater than the one  of the item,  so a
 " space will be added; and the left-justifcation  will cause it to appear at the
 " end (instead of the beginning).
 
-" .42  field {{{3
+" .123  field {{{3
 
-" Limit the width of an item to 42 cells:
+" Limit the width of an item to 123 cells:
 "
-"     %.42item
+"     %.123item
 "
 " Can be used (after the 1st percent sign) with all kinds of items:
 "
@@ -778,70 +668,157 @@ endfu
 "       It's the default value used for a buffer without any peculiarity:
 "       random type, random name
 "}}}
+fu statusline#list_position() abort "{{{2
+    if !get(g:, 'my_stl_list_position', 0)
+        return ''
+    endif
+
+    let [s:cur_col, s:cur_line, s:cur_buf] = [col('.'),     line('.'), bufnr('%')]
+    let [s:bufname, s:argidx, s:argc]      = [bufname('%'), argidx(),  argc()]
+
+    if g:my_stl_list_position == 1 && get(getqflist({'size': 0}), 'size', 0) > s:MAX_LIST_SIZE
+        return '[> '..s:MAX_LIST_SIZE..']'
+    elseif g:my_stl_list_position == 2 && argc() > s:MAX_LIST_SIZE
+        return '[> '..s:MAX_LIST_SIZE..']'
+    endif
+
+    let s:list = [
+        \ {'name': 'qfl', 'entries': getqflist()},
+        \ {'name': 'arg', 'entries': map(range(argc()), {_,v -> argv(v)})}
+        \ ][g:my_stl_list_position-1]
+
+    if empty(s:list.entries)
+        return '[]'
+    endif
+
+    let info = { 'qfl': getqflist({'idx':  0, 'size': 0}),
+        \        'arg': {'idx':  argidx(), 'size': argc()},
+        \ }[s:list.name]
+
+    if len(info) < 2 | return '[]' | endif
+
+    let [idx, size] = [info.idx, info.size]
+    let s:cur_entry = s:list.entries[idx-1]
+
+    return ( s:is_in_list_and_current()()
+       \ ?       {'qfl': 'C', 'arg': 'A'}[s:list.name]
+       \ :   s:is_in_list_but_not_current()()
+       \ ?       {'qfl': 'c', 'arg': 'a'}[s:list.name]
+       \ :       {'qfl': 'ȼ', 'arg': 'ā'}[s:list.name]
+       \   )
+       \ ..'['..(idx + (s:list.name is# 'arg' ? 1 : 0))..'/'..size..']'
+endfu
+
+" This function displays an item showing our position in the qfl or arglist.
+"
+" It only works when `g:my_stl_list_position` is set to 1 (which is not the case
+" by default).   To toggle  the display,  install autocmds  which set  the value
+" automatically when the qfl or arglist is populated.
+"
+" And/or use mappings, such as:
+"
+"     nno  <silent>  [oi  :let g:my_stl_list_position = 1<cr>
+"     nno  <silent>  ]oi  :let g:my_stl_list_position = 0<cr>
+"     nno  <silent>  coi  :let g:my_stl_list_position = !get(g:, 'my_stl_list_position', 0)<cr>
+
+fu statusline#fugitive() abort "{{{2
+    if !get(g:, 'my_fugitive_branch', 0)
+        return ''
+    endif
+    return exists('*fugitive#statusline') ? fugitive#statusline() : ''
+endfu
+"}}}1
+" Util {{{1
+fu s:is_in_list_and_current() abort "{{{2
+    return
+    \      { 'qfl':
+    \               {->
+    \                        [s:cur_buf,         s:cur_line,       s:cur_col]
+    \                    ==# [s:cur_entry.bufnr, s:cur_entry.lnum, s:cur_entry.col]
+    \                ||
+    \                        [s:cur_buf,         s:cur_line]
+    \                    ==# [s:cur_entry.bufnr, s:cur_entry.lnum]
+    \                    &&  s:cur_entry.col == 0
+    \                ||
+    \                        s:cur_buf
+    \                    ==  s:cur_entry.bufnr
+    \                    && [s:cur_entry.lnum, s:cur_entry.col] ==# [0, 0]
+    \               },
+    \
+    \        'arg': {-> s:bufname is# argv(s:argidx)}
+    \      }[s:list.name]
+endfu
+
+fu s:is_in_list_but_not_current() abort "{{{2
+    return
+    \      {'qfl':
+    \              {-> index(
+    \                   map(deepcopy(s:list.entries), {_,v -> [v.bufnr, v.lnum, v.col]}),
+    \                   [s:cur_buf, s:cur_line, s:cur_col]) >= 0
+    \              },
+    \
+    \       'arg': {-> index(map(range(s:argc), {_,v -> argv(v)}), s:bufname) >= 0}
+    \      }[s:list.name]
+endfu
 " }}}1
 " Options {{{1
 
 " always enable the status line
-set laststatus=2
-
-" if you want to always enable the tabline
-"
-"         set showtabline=2
-"
-" Atm I don't do it, because I don't want it when there's only 1 tab page.
-
+set ls=2
 
 " `vim-flagship` recommends to remove the `e` flag from 'guioptions', because it:
-"
 " > disables the GUI tab line in favor of the plain text version
 set guioptions-=e
 
-
-" 'tabline' controls the contents of the tabline (tab pages labels)
-" only for terminal
-"
-" But,  since the  number  of tab  labels  may  vary, we  can't  set the  option
-" directly, we need to build it inside a function, and use the returned value of
-" the latter.
 set tabline=%!statusline#tabline()
 
-
-" TODO: Do we really need autocmds?{{{
+" TODO: Try to eliminate the autocmds.{{{
 "
 " https://github.com/vim/vim/issues/4406#issuecomment-495496763
 "
-"     fun! SetupStl(nr)
-"       return get(extend(w:, { "is_active": (winnr() == a:nr) }), "", "")
-"     endf
+"     $ vim -Nu <(cat <<'EOF'
+"     " here `winnr()` is the number of the *active* window
+"     set statusline=%!GetStl(winnr())
 "
-"     fun! BuildStatusLine(nr)
-"       return '%{SetupStl(' . a:nr . ')} %{w:["is_active"] ? "active" : "inactive"}'
-"     endf
+"     fu GetStl(nr) abort
+"       return '%{SetStlFlag('..a:nr..')} %{w:is_active ? "active" : "inactive"}'
+"     endfu
 "
-"     " winnr() here is always the number of the *active* window
-"     set statusline=%!BuildStatusLine(winnr())
+"     fu SetStlFlag(nr) abort
+"     " here `winnr()` is the number of the window to which the status line belongs
+"       return get(extend(w:, {'is_active': (winnr() == a:nr)}), '', '')
+"     endfu
+"     EOF
+"     ) +vs
+"
+" Issue:
+" The  function can  only know  whether it's  called for  an active  or inactive
+" window inside a `%{}` item; but inside a `%{}` item, you can't include a `%w`, `%p`, ...
+" As a workaround, you can try to emulate them:
+"
+"     %w ⇔ %{&l:pvw ? '[Preview]' : ''}
 "}}}
 augroup my_statusline
     au!
 
-    au BufWinEnter,WinEnter  *  setl stl=%!statusline#main(1)
-    au WinLeave              *  setl stl=%!statusline#main(0)
+    au BufWinEnter,WinEnter * setl stl=%!statusline#main(1)
+    au WinLeave             * setl stl=%!statusline#main(0)
 
     " Why?{{{
     "
-    " Needed  for some  special buffers,  because no  WinEnter /  BufWinEnter is
+    " Needed for some special buffers,  because no `WinEnter` / `BufWinEnter` is
     " fired right after their creation.
     "}}}
-    " But, isn't there a `(Buf)WinEnter` after populating the qfl and opening its window ?{{{
+    " But, isn't there a `(Buf)WinEnter` after populating the qfl and opening its window?{{{
     "
     " Yes, but if  you close the window,  then later re-open it,  there'll be no
     " `(Buf)WinEnter`. OTOH, there will be a `FileType`.
     "}}}
-    au Filetype  dirvish,man,qf  setl stl=%!statusline#main(1)
-    au BufDelete UnicodeTable    setl stl=%!statusline#main(1)
+    au Filetype  dirvish,man,qf setl stl=%!statusline#main(1)
+    au BufDelete UnicodeTable   setl stl=%!statusline#main(1)
 
     " show just the line number in a command-line window
-    au CmdWinEnter  *  let &l:stl = '%=%-13l'
+    au CmdWinEnter * let &l:stl = '%=%-13l'
     " same thing in a websearch file
     " Why `WinEnter` *and* `BufWinEnter`?{{{
     "
@@ -854,6 +831,6 @@ augroup my_statusline
     " And we have an autocmd listening  to `BufWinEnter` which would set `'stl'`
     " with the value `%!statusline#main(1)`.
     "}}}
-    au WinEnter,BufWinEnter  tmuxprompt,websearch  let &l:stl = '%=%-13l'
+    au WinEnter,BufWinEnter tmuxprompt,websearch let &l:stl = '%=%-13l'
 augroup END
 
