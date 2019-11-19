@@ -17,333 +17,435 @@ const s:MAX_LIST_SIZE = 999
 "
 " For inspiration, study `vim-flagship` first.
 "}}}
-" TODO: try to simplify the code, using the Vim patch 8.1.1372{{{
-"
-" https://github.com/vim/vim/commit/1c6fd1e100fd0457375642ec50d483bcc0f61bb2
-"
-" Wait for Nvim to merge the patch.
-"
-" The patch introduces the variables `g:statusline_winid` and `g:actual_curwin`.
-" I'm not  sure how to use  them, but I think  that with them, we  wouldn't need
-" autocmds to set a local 'stl' anymore.
-" We could set a global 'stl', and  handle all cases (active vs inactive window)
-" in the function.
-"
-"     let active = winid() == g:statusline_winid
-"
-" See: https://github.com/vim/vim/issues/4406
-"}}}
-" FIXME: The status line is sometimes wrongly noisy.{{{
-"
-" Press `gt` in this file to open the location window with all the todos.
-" Press `C-w CR` to open an entry in a new split window.
-" The statusline of the unfocused top window is noisy; it shouldn't.
-"
-" ---
-"
-"     $ vim -d ~/.bashrc ~/.zshrc
-"
-" Why is the statusline in the left window noisy?
-" Focus it, then get back to the second  window: it gets quiet, which is what we
-" wanted right from the start.
-"
-" Same issue if we start Vim with `-O`.
-"
-" I think  the issue is that  `BufWinEnter` or `WinEnter` is  probably fired for
-" all windows, which makes all windows receive a noisy statusline:
-"
-"     au BufWinEnter,WinEnter  *  setl stl=%!statusline#main(1)
-"                                                            │
-"                                                            └ has focus
-"
-" But `WinLeave` is not fired as we could expect:
-"
-"     au WinLeave              *  setl stl=%!statusline#main(0)
-"
-" So, the statuslines are not reset to be quiet.
-"}}}
+
+" Options {{{1
+
+" always enable the status line
+set ls=2
+
+" `vim-flagship` recommends to remove the `e` flag from 'guioptions', because it:
+" > disables the GUI tab line in favor of the plain text version
+set guioptions-=e
+
+set tabline=%!statusline#tabline()
+
+if !has('nvim')
+    set stl=%!statusline#main()
+    fu statusline#main() abort
+        if g:statusline_winid != win_getid()
+            let winnr = win_id2win(g:statusline_winid)
+            return getwinvar(winnr, '&ft', '') is# 'undotree'
+                \ ?     '%=%l/%L '
+                \ :     ' %1*%{statusline#tail_of_path()}%* '
+                \     ..'%-7{&l:diff ? "[diff]" : ""}'
+                \     ..'%-6{&l:pvw ? "[pvw]" : ""}'
+                \     ..'%='
+                \     ..(getwinvar(winnr, '&pvw', 0) ? '%p%% ' : '')
+                \     ..(getwinvar(winnr, '&bt', '') is# 'quickfix' ? '%-15(%l/%L%) ' : '')
+        else
+            " Why an indicator for the 'paste' option?{{{
+            "
+            " Atm there's  an issue in  Nvim, where  'paste' may be  wrongly set
+            " when  we paste  some  text  on the  command-line  with a  trailing
+            " literal carriage return.
+            "
+            " Anyway, this is  an option which has too many  effects; we need to
+            " be informed immediately whenever it's set.
+            "}}}
+            " How to make sure two consecutive items are separated by a space?{{{
+            "
+            " If they have a fixed length (e.g. 12):
+            "
+            "     %-13{item}
+            "      ├─┘
+            "      └ make the length of the item is one cell longer than the text it displays
+            "        and left-align the item
+            "
+            " Otherwise append a space manually:
+            "
+            "     '%{item} '
+            "             ^
+            "
+            " The first syntax  is better, because the space is  appended on the
+            " condition the  item is not empty;  the second syntax adds  a space
+            " unconditionally.
+            "}}}
+            return &ft is# 'freekeys'
+               \ ?     '%=%-5l'
+               \ : &ft is# 'undotree'
+               \ ?     '%=%l/%L '
+               \ : &ft is# 'fex_tree'
+               \ ?     ' '..(get(b:, 'fex_curdir', '') is# '/' ? '/' : fnamemodify(get(b:, 'fex_curdir', ''), ':t'))
+               \          ..'%=%-8(%l,%c%) %p%% '
+               \ : &bt is# 'quickfix'
+               \ ? (get(w:, 'quickfix_title', '') =~# '\<TOC$'
+               \     ?      ''
+               \     :      (get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '))
+               \      .."%.80{exists('w:quickfix_title')? '  '..w:quickfix_title : ''}"
+               \      .."%=    %-15(%l/%L%) "
+               \
+               \ :       '%{statusline#list_position()}'
+               \       ..' %1*%{statusline#tail_of_path()}%* '
+               \       ..'%-5r'
+               \       ..'%-6{&l:pvw ? "[pvw]" : ""}'
+               \       ..'%2*%-8{&paste ? "[paste]" : ""}%*'
+               \       ..'%-5{&ve is# "all" ? "[ve=all]" : ""}'
+               \       ..'%-12{&dip =~# "iwhiteall" ? "[iwhiteall]" : ""}'
+               "\ NAS = No Auto Save
+               \       ..'%-6{!exists("#auto_save_and_read") && exists("g:autosave_on_startup") ? "[NAS]" : ""}'
+               "\ AOF = Auto Open Fold
+               \       ..'%-6{exists("b:auto_open_fold_mappings") ? "[AOF]" : ""}'
+               \       ..'%-7{&l:diff ? "[diff]" : ""}'
+               \       ..'%-7{exists("*capslock#status") ? capslock#status() : ""}'
+               \       ..'%2*%{&modified && bufname("%") != "" && &bt isnot# "terminal" ? "[+]" : ""}%*'
+               \       ..'%='
+               \       ..'%{statusline#fugitive()}  '
+               \       ..'%-5{exists("*session#status") ? session#status() : ""}'
+               \       ..'%-8(%.5l,%.3v%)'
+               \       ..'%4p%% '
+               " About the positions of the indicators.{{{
+               "
+               " Let the modified flag (`[+]`) at the end of the left part of the status line.
+               "
+               "     \       ..'%2*%{&modified && ... ? "[+]" : ""}%*'
+               "
+               " If you  move it before, then  you'll need to append  a space to
+               " separate the flag from the next one:
+               "
+               "     \       ..'%2*%{&modified && ... ? "[+] " : ""}%*'
+               "                                            ^
+               "
+               " But the space will be highlighted, which we don't want.
+               " So, you'll need to move it outside `%{}`:
+               "
+               "     \       ..'%2*%{&modified && ... ? "[+]" : ""}%* '
+               "                                                     ^
+               "
+               " But this  means that the space  will be included in  the status
+               " line  UNconditionally. As  a result,  when  the  buffer is  not
+               " modified, there will be 2  spaces between the flags surrounding
+               " the missing `[+]`.
+               "
+               " ---
+               "
+               " We try to put all temporary  indicators on the left, where they
+               " are the most  visible, and all the "lasting"  indicators on the
+               " right.
+               "
+               " For  example,  if you  enable  the  fugitive indicator,  you'll
+               " probably let it on for more than  just a few seconds; so we put
+               " it on the right.  OTOH, if  you toggle `'ve'` which enables the
+               " virtualedit  indicator, it  will  probably be  for  just a  few
+               " seconds; so we put it on the left.
+               "}}}
+               " TODO: Maybe we should remove all plugin-specific flags.{{{
+               "
+               " Instead, we could register a flag from a plugin via a public function.
+               "
+               " For inspiration, have a look at this:
+               " https://github.com/tpope/vim-flagship/blob/master/doc/flagship.txt#L33
+               "
+               " ---
+               "
+               " Atm, `vim-fex` relies on  `vim-statusline` to correctly display
+               " – in the status line – the name of the directory whose contents
+               " is being viewed.
+               "
+               " That is not good.
+               " Our plugins should have as few dependencies as possible.
+               " A `fex_tree` buffer should set its own status line.
+               "
+               " Make sure no other plugin relies on `vim-statusline` to set its
+               " status line.
+               "}}}
+        endif
+    endfu
+    " %<{{{
+    "
+    " It means: "do *not* truncate what comes before".
+    " If needed, Vim can truncate what comes after; and if it does, it truncates
+    " the start of the text, not the end:
+    "
+    "     $ vim -Nu NONE +'set ls=2|set stl=abcdef%<ghijklmnopqrstuvwxyz' +'10vs'
+    "     abcdef<xyz~
+    "
+    " Notice how  the text `ghi...xyz`  has been  truncated from the  start, not
+    " from the end. This  is why `<` was  chosen for the item `%<`,  and this is
+    " why `<` is positioned *before* the truncated text.
+    "
+    " However, if the text that comes before  `%<` is too long, Vim will have to
+    " truncate it:
+    "
+    "     $ vim -Nu NONE +'set ls=2|set stl=abcdefghijklmn%<opqrstuvwxyz' +'10vs'
+    "     abcdefghi>~
+    "
+    " Notice that this time, `>` is positioned *after* the truncated text.
+    "
+    " ---
+    "
+    " To control truncations, you must use:
+    "
+    "    - `%<` outside `%{}`
+    "    - `.123` inside `%{}` (e.g. `%.123{...}`)
+    "}}}
+    " %(%) {{{
+    "
+    " Useful to set the desired width / justification of a group of items.
+    "
+    " Example:
+    "
+    "      ┌ left justification
+    "      │ ┌ width of the group
+    "      │ │
+    "      │ │ ┌ various items inside the group (%l, %c, %V)
+    "      │ │ ├─────┐
+    "     %-15(%l,%c%V%)
+    "     │           ├┘
+    "     │           └ end of group
+    "     │
+    "     └ beginning of group
+    "       the percent is separated from the open parenthesis because of the width field
+    "
+    " For more info, `:h 'stl`:
+    "
+    " > ( - Start of item group.  Can  be used for setting the width and alignment
+    " >                           of a section.  Must be followed by %) somewhere.
+    "
+    " > ) - End of item group.    No width fields allowed.
+    "}}}
+    " -123  field {{{
+
+    " Set the width of a field to 123 cells.
+    "
+    " Can be used (after the 1st percent sign) with all kinds of items:
+    "
+    "    - `%l`
+    "    - `%{...}`
+    "    - `%(...%)`
+    "
+    " Useful to append a space to an item, but only if it's not empty:
+    "
+    "     %-12item
+    "         ├──┘
+    "         └ suppose that the width of the item is 11
+    "
+    " The width  of the field  is one unit  greater than the one  of the item,  so a
+    " space will be added; and the left-justifcation  will cause it to appear at the
+    " end (instead of the beginning).
+    "}}}
+    " .123  field {{{
+    "
+    " Limit the width of an item to 123 cells:
+    "
+    "     %.123item
+    "
+    " Can be used (after the 1st percent sign) with all kinds of items:
+    "
+    "    - `%l`
+    "    - `%{...}`
+    "    - `%(...%)`
+    "
+    " Truncation occurs with:
+    "
+    "    - a '<' at the start for text items
+    "    - a '>' at the end for numeric items (only `maxwid - 2` digits are kept)
+    "      the number after '>' stands for how many digits are missing
+    "}}}
+    " What's the difference between `g:statusline_winid` and `g:actual_curwin`?{{{
+    "
+    " The former can be used in an `%!` expression, the latter inside a `%{}` item.
+    " Note that, inside a `%{}` expression:
+    "
+    "     g:actual_curwin == win_getid()
+    "
+    " So, it's only useful to avoid the  overhead created by the invocation of a
+    " Vimscript function.
+    "}}}
+
+    augroup my_statusline
+        au!
+        " remove local value set by default (filetype) plugins
+        au Filetype undotree,qf set stl<
+        " just show the line number in a command-line window
+        au CmdWinEnter * let &l:stl = '%=%-13l'
+        " same thing in some special files
+        au FileType tmuxprompt,websearch let &l:stl = '%y%=%-13l'
+    augroup END
+else
+    " TODO: Remove the `if has('nvim')` guard, as well as this whole `else` block once `8.1.1372` has been ported to Nvim.
+    " Which alternative to these autocmds could I use?{{{
+    "
+    " You could leverage the fact that `winnr()` evaluates to the number of:
+    "
+    "    - the active window in a `%!` expression
+    "    - the window to which the status line belongs in an `%{}` expression
+    "
+    " The comparison between the two evaluations  tells you whether you're in an
+    " active or inactive window at the time the function setting the status line
+    " contents is invoked.
+    "
+    " And to avoid  having to re-evaluate `winnr()` every time  you need to know
+    " whether you're  in an  active or  inactive window, you  can use  the first
+    " `%{}` to set a window variable.
+    "
+    " MWE:
+    "
+    "     $ vim -Nu <(cat <<'EOF'
+    "     " here `winnr()` is the number of the *active* window
+    "     set stl=%!GetStl(winnr())
+    "
+    "     fu GetStl(nr) abort
+    "       return '%{SetStlFlag('..a:nr..')} %{w:is_active ? "active" : "inactive"}'
+    "     endfu
+    "
+    "     fu SetStlFlag(nr) abort
+    "     " here `winnr()` is the number of the window to which the status line belongs
+    "       return get(extend(w:, {'is_active': (winnr() == a:nr)}), '', '')
+    "     endfu
+    "     EOF
+    "     ) +vs
+    "
+    " Source: https://github.com/vim/vim/issues/4406#issuecomment-495496763
+    "}}}
+    "   What is its limitation?{{{
+    "
+    " The function can only know whether it's called for an active or inactive
+    " window inside a `%{}` expression; but inside, you can't include a `%w`, `%p`, ...:
+    "
+    "     %{w:is_active ? "" : "%w"}
+    "                          ^^^
+    "                           ✘
+    "
+    " As a workaround, you can try to emulate them:
+    "
+    "     %{w:is_active ? "" : (&l:pvw ? "[Preview]" : "")}
+    "
+    " But that's not always easy, and it seems awkward/cumbersome.
+    "}}}
+    augroup my_statusline
+        au!
+        au BufWinEnter,WinEnter * setl stl=%!statusline#main(1)
+        au WinLeave             * setl stl=%!statusline#main(0)
+
+        " Why?{{{
+        "
+        " Needed for some special buffers,  because no `WinEnter` / `BufWinEnter` is
+        " fired right after their creation.
+        "}}}
+        " But, isn't there a `(Buf)WinEnter` after populating the qfl and opening its window?{{{
+        "
+        " Yes, but if  you close the window,  then later re-open it,  there'll be no
+        " `(Buf)WinEnter`. OTOH, there will be a `FileType`.
+        "}}}
+        au Filetype  dirvish,man,qf setl stl=%!statusline#main(1)
+        au BufDelete UnicodeTable   setl stl=%!statusline#main(1)
+
+        au CmdWinEnter * let &l:stl = '%=%-13l'
+        " Why `WinEnter` *and* `BufWinEnter`?{{{
+        "
+        " `BufWinEnter` for when the buffer is displayed for the first time.
+        " `WinEnter` for when we move to another window, then come back.
+        "}}}
+        " Why not `FileType`?{{{
+        "
+        " Because there's a `BufWinEnter` after `FileType`.
+        " And we have an autocmd listening  to `BufWinEnter` which would set `'stl'`
+        " with the value `%!statusline#main(1)`.
+        "}}}
+        au WinEnter,BufWinEnter tmuxprompt,websearch let &l:stl = '%y%=%-13l'
+    augroup END
+
+    " Do *not* assume that the expression for non-focused windows will be evaluated only in the window you leave. {{{
+    "
+    " `main(1)` will be evaluated only for the window you focus.
+    " But `main(0)` will be evaluated for ANY window which doesn't have the focus.
+    " And `main(0)` will be evaluated every time the status lines must be redrawn,
+    " which happens every time you change the focus from a window to another.
+    "
+    " This means that when you write the first expression:
+    "
+    "     if !a:has_focus
+    "         return 1st_expr
+    "     endif
+    "
+    " ... you must NOT assume that the  expression will only be evaluated in the
+    " previous window. It will be evaluated  inside ALL windows which don't have
+    " the focus, every time you change the focused window.
+    "
+    " This means that, if you want to reliably test a (buffer/window-)local variable:
+    "
+    "    - you NEED a `%{}`              in the expression for the non-focused windows
+    "    - you CAN work without a `%{}`  in the expression for the     focused window
+    "
+    " This  explains  why you  can  test  `&ft` outside  a  `%{}`  item in  the  2nd
+    " expression, but not in the first:
+    "
+    "     if !has_focus
+    "         ✘
+    "         return '...'.(&bt is# 'quickfix' ? '...' : '')
+    "     endif
+    "     ✔
+    "     return &bt is# 'quickfix'
+    "     ?...
+    "     :...
+    "
+    "
+    "     if !has_focus
+    "         ✔
+    "         return '...%{&bt is# 'quickfix' ? "..." : ""}'
+    "     endif
+    "     ✔
+    "     return &bt is# 'quickfix'
+    "     ?...
+    "     :...
+    "}}}
+    fu statusline#main(has_focus) abort
+        if !a:has_focus
+            return ' %1*%{statusline#tail_of_path()}%* '
+               \ ..'%-7{&l:diff ? "[diff]" : ""}'
+               \ ..'%-6{&l:pvw ? "[pvw]" : ""}'
+               \ ..'%='
+               \ ..'%{&l:pvw ? float2nr(100.0 * line(".")/line("$")).."% " : ""}'
+               \ ..'%{&bt is# "quickfix"
+               \      ?     line(".").."/"..line("$")..repeat(" ", 16 - len(line(".").."/"..line("$")))
+               \      :     ""}'
+        else
+            return &ft is# 'freekeys'
+               \ ?     '%=%-5l'
+               \ : &ft is# 'undotree'
+               \ ?     '%=%l/%L '
+               \ : &ft is# 'fex_tree'
+               \ ?     ' '..(get(b:, 'fex_curdir', '') is# '/' ? '/' : fnamemodify(get(b:, 'fex_curdir', ''), ':t'))
+               \          ..'%=%-8(%l,%c%) %p%% '
+               \ : &bt is# 'quickfix'
+               \ ? (get(w:, 'quickfix_title', '') =~# '\<TOC$'
+               \     ?      ''
+               \     :      (get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '))
+               \      .."%.80{exists('w:quickfix_title')? '  '..w:quickfix_title : ''}"
+               \      .."%=    %-15(%l/%L%) "
+               \
+               \ :       '%{statusline#list_position()}'
+               \       ..' %1*%{statusline#tail_of_path()}%* '
+               \       ..'%-5r'
+               \       ..'%-6{&l:pvw ? "[pvw]" : ""}'
+               \       ..'%2*%-8{&paste ? "[paste]" : ""}%*'
+               \       ..'%-5{&ve is# "all" ? "[ve=all]" : ""}'
+               \       ..'%-12{&dip =~# "iwhiteall" ? "[iwhiteall]" : ""}'
+               \       ..'%-6{!exists("#auto_save_and_read") && exists("g:autosave_on_startup") ? "[NAS]" : ""}'
+               \       ..'%-6{exists("b:auto_open_fold_mappings") ? "[AOF]" : ""}'
+               \       ..'%-7{&l:diff ? "[diff]" : ""}'
+               \       ..'%-7{exists("*capslock#status") ? capslock#status() : ""}'
+               \       ..'%2*%{&modified && bufname("%") != "" && &bt isnot# "terminal" ? "[+]" : ""}%*'
+               \       ..'%='
+               \       ..'%{statusline#fugitive()}  '
+               \       ..'%-5{exists("*session#status") ? session#status() : ""}'
+               \       ..'%-8(%.5l,%.3v%)'
+               \       ..'%4p%% '
+        endif
+    endfu
+endif
 
 " Interface {{{1
-fu statusline#main(has_focus) abort "{{{2
-    if !a:has_focus
-        " Do not use `%-16{...}` to distance the position in the quickfix list from the right border.{{{
-        "
-        " The additional spaces would be added  no matter what; i.e. even if the
-        " buffer is not a quickfix buffer.
-        " We want them only in a quickfix buffer.
-        "}}}
-        " Is there a more efficient way of getting the percentage through the file?{{{
-        "
-        " Not sure, but you could try  to use `g:actual_curbuf` to check whether
-        " the buffer is displayed in a preview window.
-        " If it is, you would return a string containing `%p`.
-        " If it does not, you would return another string without `%p`.
-        "
-        "     return buffer_is_not_in_a_preview_window
-        "         \ ? ...
-        "         \ : ...
-        "
-        " `g:actual_curwin` or `g:statusline_winid` would be better (btw, what's
-        " the difference between the two?), but Nvim doesn't support them atm.
-        "}}}
-        return ' %1*%{statusline#tail_of_path()}%* '
-        \     ..'%-7{&l:diff ? "[Diff]" : ""}'
-        \     ..'%w'
-        \     ..'%='
-        \     ..'%{&l:pvw ? float2nr(100.0 * line(".")/line("$")).."% " : ""}'
-        \     ..'%{
-        \           &bt is# "quickfix"
-        \           ?     line(".").."/"..line("$")..repeat(" ", 16 - len(line(".").."/"..line("$")))
-        \           :     ""
-        \        }'
-    endif
-
-    " Why an indicator for the 'paste' option?{{{
-    "
-    " Atm there's  an issue in  Nvim, where 'paste' may  be wrongly set  when we
-    " paste  some text  on the  command-line  with a  trailing literal  carriage
-    " return.
-    "
-    " Anyway,  this is  an option  which has  too many  effects; we  need to  be
-    " informed immediately whenever it's set.
-    "}}}
-    " How to make sure two consecutive items are separated by a space?{{{
-    "
-    " If they have a fixed length (e.g. 12):
-    "
-    "     %-13{item}
-    "      ├─┘
-    "      └ make the length of the item is one cell longer than the text it displays
-    "        and left-align the item
-    "
-    " Otherwise append a space manually:
-    "
-    "     '%{item} '
-    "             ^
-    "
-    " The first syntax is better, because the space is appended on the condition
-    " the item is not empty; the second syntax adds a space unconditionally.
-    "}}}
-    return &ft is# 'freekeys'
-       \ ?     '%=%-5l'
-       \ : &ft is# 'undotree'
-       \ ?     "%=%{line('.')..'/'..line('$')..' '}"
-       \ : &ft is# 'fex_tree'
-       \ ?     ' '..(get(b:, 'fex_curdir', '') is# '/' ? '/' : fnamemodify(get(b:, 'fex_curdir', ''), ':t'))
-       \          ..'%=%-8(%l,%c%) %p%% '
-       \ : &bt is# 'quickfix'
-       \ ? (get(w:, 'quickfix_title', '') =~# '\<TOC$'
-       \     ?      ''
-       \     :      (get(b:, 'qf_is_loclist', 0) ? '[LL] ': '[QF] '))
-       \      .."%.80{exists('w:quickfix_title')? '  '.w:quickfix_title : ''}"
-       \      .."%=    %-15(%l/%L%) "
-       \
-       \ :       '%{statusline#list_position()}'
-       \       ..' %1*%{statusline#tail_of_path()}%* '
-       \       ..'%-5r'
-       \       ..'%w'
-       \       ..'%2*%-8{&paste ? "[paste]" : ""}%*'
-       \       ..'%-5{&ve is# "all" ? "[ve]" : ""}'
-       \       ..'%-12{&dip =~# "iwhiteall" ? "[iwhiteall]" : ""}'
-       "\ NAS = No Auto Save
-       \       ..'%-6{!exists("#auto_save_and_read") && exists("g:autosave_on_startup") ? "[NAS]" : ""}'
-       "\ AOF = Auto Open Fold
-       \       ..'%-6{exists("b:auto_open_fold_mappings") ? "[AOF]" : ""}'
-       \       ..'%-7{&l:diff ? "[Diff]" : ""}'
-       \       ..'%-7{exists("*capslock#status") ? capslock#status() : ""}'
-       \       ..'%2*%{&modified && bufname("%") != "" && &bt isnot# "terminal" ? "[+]" : ""}%*'
-       \       ..'%='
-       \       ..'%{statusline#fugitive()}  '
-       \       ..'%-5{exists("*session#status")  ? session#status()  : ""}'
-       \       ..'%-8(%.5l,%.3v%)'
-       \       ..'%4p%% '
-       " About the positions of the indicators.{{{
-       "
-       " Let the modified flag (`[+]`) at the end of the left part of the status line.
-       "
-       "     \       ..'%2*%{&modified && ... ? "[+]" : ""}%*'
-       "
-       " If you move  it before, then you'll need to append  a space to separate
-       " the flag from the next one:
-       "
-       "     \       ..'%2*%{&modified && ... ? "[+] " : ""}%*'
-       "                                            ^
-       "
-       " But the space will be highlighted, which we don't want.
-       " So, you'll need to move it outside `%{}`:
-       "
-       "     \       ..'%2*%{&modified && ... ? "[+]" : ""}%* '
-       "                                                     ^
-       "
-       " But  this means  that the  space will  be included  in the  status line
-       " UNconditionally. As a  result, when the  buffer is not  modified, there
-       " will be 2 spaces between the flags surrounding the missing `[+]`.
-       "
-       " ---
-       "
-       " We try to put all temporary indicators  on the left, where they are the
-       " most visible, and all the "lasting" indicators on the right.
-       "
-       " For example, if you enable  the fugitive indicator, you'll probably let
-       " it on for more than just a few seconds; so we put it on the right.
-       " OTOH, if you toggle `'ve'`  which enables the virtualedit indicator, it
-       " will probably be for just a few seconds; so we put it on the left.
-       "}}}
-       " TODO: Maybe we should remove all plugin-specific flags.{{{
-       "
-       " Instead, we could register a flag from a plugin via a public function.
-       "
-       " For inspiration, have a look at this:
-       " https://github.com/tpope/vim-flagship/blob/master/doc/flagship.txt#L33
-       "
-       " ---
-       "
-       " Atm, `vim-fex` relies  on `vim-statusline` to correctly  display in the
-       " status line, the name of the directory whose contents is being viewed.
-       "
-       " That is not good.
-       " Our plugins should have as few dependencies as possible.
-       " A `fex_tree` buffer should set its own status line.
-       "
-       " Make sure no other plugin relies on `vim-statusline` to set its status line.
-       "}}}
-endfu
-
-" This function can be called when we enter a window, or when we leave one.
-
-" Treat a qf buffer separately.{{{3
-"
-" For a qf buffer, the default local value of `'stl'` can be found here:
-"
-"     $VIMRUNTIME/ftplugin/qf.vim
-"
-" It's important to  treat it separately, because our default  value for `'stl'`
-" wouldn't give us much information in a qf window. In particular, we would miss
-" its title.
-
-" Do *not* assume that the expression for non-focused windows will be evaluated only in the window you leave. {{{3
-"
-" `main(1)` will be evaluated only for the window to which we give the focus.
-" But `main(0)` will be evaluated for ANY window which doesn't have the focus.
-" And `main(0)` will be evaluated every time the statuslines must be redrawn,
-" which happens every time we change the focus from a window to another.
-" This means that when you write the 1st expression:
-"
-"     if !a:has_focus
-"         return 1st_expr
-"     endif
-"
-" ... you  must NOT assume  that this expression will  only be evaluated  in the
-" window in  which the focus  was just before. It  will be evaluated  inside ALL
-" windows which don't have the focus, every time you change the focused window.
-"
-" This means that, if you want to reliably test a (buffer/window-)local variable:
-"
-"    - you NEED a `%{}`              in the expression for the non-focused windows
-"    - you CAN work without a `%{}`  in the expression for the     focused window
-"
-" This  explains  why you  can  test  `&ft` outside  a  `%{}`  item in  the  2nd
-" expression, but not in the first:
-"
-"     if !has_focus
-"         return '...'.(&bt is# 'quickfix' ? '...' : '')    ✘
-"     endif
-"     return &bt is# 'quickfix'                         ✔
-"     ?...
-"     :...
-"
-"
-"     if !has_focus
-"         return '...%{&bt is# 'quickfix' ? "..." : ""}'    ✔
-"     endif
-"     return &bt is# 'quickfix'                         ✔
-"     ?...
-"     :...
-
-" %(%) {{{3
-"
-" Useful to set the desired width / justification of a group of items.
-"
-" Example:
-"
-"      ┌ left justification
-"      │ ┌ width of the group
-"      │ │
-"      │ │ ┌ various items inside the group (%l, %c, %V)
-"      │ │ ├─────┐
-"     %-15(%l,%c%V%)
-"     │           ├┘
-"     │           └ end of group
-"     │
-"     └ beginning of group
-"       the percent is separated from the open parenthesis because of the width field
-"
-" For more info, `:h 'stl`:
-"
-" > ( - Start of item group.  Can  be used for setting the width and alignment
-" >                           of a section.  Must be followed by %) somewhere.
-"
-" > ) - End of item group.    No width fields allowed.
-
-" -123  field {{{3
-
-" Set the width of a field to 123 cells.
-"
-" Can be used (after the 1st percent sign) with all kinds of items:
-"
-"    - `%l`
-"    - `%{...}`
-"    - `%(...%)`
-"
-" Useful to append a space to an item, but only if it's not empty:
-"
-"     %-12item
-"         ├──┘
-"         └ suppose that the width of the item is 11
-"
-" The width  of the field  is one unit  greater than the one  of the item,  so a
-" space will be added; and the left-justifcation  will cause it to appear at the
-" end (instead of the beginning).
-
-" .123  field {{{3
-
-" Limit the width of an item to 123 cells:
-"
-"     %.123item
-"
-" Can be used (after the 1st percent sign) with all kinds of items:
-"
-"    - `%l`
-"    - `%{...}`
-"    - `%(...%)`
-"
-" Truncation occurs with:
-"
-"    - a '<' on the left for text items
-"    - a '>' on the right for numeric items (only `maxwid - 2` digits are kept)
-"      the number after '>' stands for how many digits are missing
-
-" various items {{{3
-
-"    ┌────────────────────────────────┬─────────────────────────────────────────────────────┐
-"    │ %1*%t%*                        │ switch to HG User1, add filename, reset HG          │
-"    ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"    │ %2*%{&modified ? "[+]" : ""}%* │ switch to HG User2, add flag modified [+], reset HG │
-"    ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"    │ %r%w                           │ flags: read-only [RO], preview window [Preview]     │
-"    ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"    │ %=                             │ right-align next items                              │
-"    ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"    │ %{&ve is# "all" ? "[ve]" : ""} │ flag for 'virtualedit'                              │
-"    ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"    │ %l                             │ line nr                                             │
-"    ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"    │ %v                             │ virtual column nr                                   │
-"    ├────────────────────────────────┼─────────────────────────────────────────────────────┤
-"    │ %p%%                           │ percentage of read lines                            │
-"    └────────────────────────────────┴─────────────────────────────────────────────────────┘
-" }}}3
-
 fu statusline#tabline() abort "{{{2
     let s = ''
     for i in range(1, tabpagenr('$'))
@@ -761,76 +863,3 @@ fu s:is_in_list_but_not_current() abort "{{{2
     \      }[s:list.name]
 endfu
 " }}}1
-" Options {{{1
-
-" always enable the status line
-set ls=2
-
-" `vim-flagship` recommends to remove the `e` flag from 'guioptions', because it:
-" > disables the GUI tab line in favor of the plain text version
-set guioptions-=e
-
-set tabline=%!statusline#tabline()
-
-" TODO: Try to eliminate the autocmds.{{{
-"
-" https://github.com/vim/vim/issues/4406#issuecomment-495496763
-"
-"     $ vim -Nu <(cat <<'EOF'
-"     " here `winnr()` is the number of the *active* window
-"     set statusline=%!GetStl(winnr())
-"
-"     fu GetStl(nr) abort
-"       return '%{SetStlFlag('..a:nr..')} %{w:is_active ? "active" : "inactive"}'
-"     endfu
-"
-"     fu SetStlFlag(nr) abort
-"     " here `winnr()` is the number of the window to which the status line belongs
-"       return get(extend(w:, {'is_active': (winnr() == a:nr)}), '', '')
-"     endfu
-"     EOF
-"     ) +vs
-"
-" Issue:
-" The  function can  only know  whether it's  called for  an active  or inactive
-" window inside a `%{}` item; but inside a `%{}` item, you can't include a `%w`, `%p`, ...
-" As a workaround, you can try to emulate them:
-"
-"     %w ⇔ %{&l:pvw ? '[Preview]' : ''}
-"}}}
-augroup my_statusline
-    au!
-
-    au BufWinEnter,WinEnter * setl stl=%!statusline#main(1)
-    au WinLeave             * setl stl=%!statusline#main(0)
-
-    " Why?{{{
-    "
-    " Needed for some special buffers,  because no `WinEnter` / `BufWinEnter` is
-    " fired right after their creation.
-    "}}}
-    " But, isn't there a `(Buf)WinEnter` after populating the qfl and opening its window?{{{
-    "
-    " Yes, but if  you close the window,  then later re-open it,  there'll be no
-    " `(Buf)WinEnter`. OTOH, there will be a `FileType`.
-    "}}}
-    au Filetype  dirvish,man,qf setl stl=%!statusline#main(1)
-    au BufDelete UnicodeTable   setl stl=%!statusline#main(1)
-
-    " show just the line number in a command-line window
-    au CmdWinEnter * let &l:stl = '%=%-13l'
-    " same thing in a websearch file
-    " Why `WinEnter` *and* `BufWinEnter`?{{{
-    "
-    " `BufWinEnter` for when the buffer is displayed for the first time.
-    " `WinEnter` for when we move to another window, then come back.
-    "}}}
-    " Why not `FileType`?{{{
-    "
-    " Because there's a `BufWinEnter` after `FileType`.
-    " And we have an autocmd listening  to `BufWinEnter` which would set `'stl'`
-    " with the value `%!statusline#main(1)`.
-    "}}}
-    au WinEnter,BufWinEnter tmuxprompt,websearch let &l:stl = '%=%-13l'
-augroup END
-
