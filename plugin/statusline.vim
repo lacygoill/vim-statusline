@@ -357,6 +357,12 @@ if !has('nvim')
             " whether we  specified a priority;  if we  didn't, can it  cause an
             " issue?
             "}}}
+            " TODO: `[Caps]` is displayed too early on the status line.{{{
+            "
+            " Besides, we  should have the flag  should not be displayed  in the
+            " status  line  when  we  enable capslock  globally;  it  should  be
+            " displayed in the tab line.
+            "}}}
             return get(s:flags.buffer, &ft, s:flags.buffer.any)
             \    ..'%='
             \    ..get(s:flags.window, &ft, s:flags.window.any)
