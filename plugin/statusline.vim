@@ -3,12 +3,40 @@ if exists('g:loaded_statusline')
 endif
 let g:loaded_statusline = 1
 
-const s:MAX_LIST_SIZE = 999
-
-" FIXME: When we press  `C-l` in insert mode, the flag  `[Caps]` is displayed in
-" the status line (✔); but the cursor jumps in the status line (✘).
-" The issue is specific to Vim, not Nvim.
-
+" TODO: Set the status line in various special type of files.{{{
+"
+" `fex_tree`, `qf`, `undotree`...
+"
+" In `fex_tree`,  we've installed an autocmd,  but it will probably  not work in
+" Nvim (read the rest of the comment to understand why).
+"
+" In  the   other  ones,  we   used  `User   MyFlags`  autocmds  in   the  past,
+" but  we've  commented  them,  because  we've  changed  the  implementation  of
+" `statusline#hoist()` (it doesn't support filetypes anymore).
+"
+" ---
+"
+" The status line in a non-focused qf window *was* noisy (I've fixed it).
+" Are there other special types of files for which the same issue applies.
+"}}}
+" TODO: Review how you set `'stl'` in special types of files (dirvish, fex, websearch).{{{
+"
+" Make sure it's not too noisy when unfocused.
+" Also, try to consolidate similar settings in a single autocmd in the same file.
+" That is, if you notice that for most special types of files, you want/need the
+" same status line, write a single autocmd to set all of them.
+" It  would create  an easy  way  to add/remove  an `'stl'`  setting for  future
+" special types of files.
+"}}}
+" TODO: Document which refactoring we will need to perform once 8.1.1372 has been ported to Nvim.{{{
+"
+" Search for `stl` everywhere.
+" What will become useless?
+" What could be simplified?
+"
+" Document everything here, so  that the day the patch is  ported, we can easily
+" refactor our scripts.
+"}}}
 " TODO: Read the following links to improve the statusline.{{{
 
 " Blog post talking about status line customization:
@@ -16,10 +44,6 @@ const s:MAX_LIST_SIZE = 999
 
 " Vim Powerline-like status line without the need of any plugin:
 " https://gist.github.com/ericbn/f2956cd9ec7d6bff8940c2087247b132
-"}}}
-" TODO: If possible, make the `%{statusline#list_position()}` item local to the current window.{{{
-"
-" For inspiration, study `vim-flagship` first.
 "}}}
 
 " Options {{{1
@@ -44,7 +68,12 @@ endif
 augroup my_statusline
     au!
 
+    " The lower the priority, the closer to the right end of the tab line the item is.
     " Warning: If you highlight a flag, make sure to reset it with `%#StatusLineTermNC#` at the end.
+    au User MyFlags call statusline#hoist('global',
+        \ '%6{!exists("#auto_save_and_read") && exists("g:autosave_on_startup") ? "[NAS]" : ""}', 10)
+    au User MyFlags call statusline#hoist('global', '%9{&ve is# "all" ? "[ve=all]" : ""}', 20)
+    au User MyFlags call statusline#hoist('global', '%16{&dip =~# "iwhiteall" ? "[dip~iwhiteall]" : ""}', 30)
     " Why an indicator for the 'paste' option?{{{
     "
     " Atm there's an issue  in Nvim, where `'paste'` may be  wrongly set when we
@@ -54,24 +83,29 @@ augroup my_statusline
     " Anyway, this is  an option which has too many  effects; we need to
     " be informed immediately whenever it's set.
     "}}}
-    au User MyFlags call statusline#hoist('global', '%2*%{&paste ? "[paste]" : ""}%#StatusLineTermNC#', 1)
-    au User MyFlags call statusline#hoist('global', '%16{&dip =~# "iwhiteall" ? "[dip~iwhiteall]" : ""}', 2)
-    au User MyFlags call statusline#hoist('global', '%9{&ve is# "all" ? "[ve=all]" : ""}', 3)
-    au User MyFlags call statusline#hoist('global',
-        \ '%6{!exists("#auto_save_and_read") && exists("g:autosave_on_startup") ? "[NAS]" : ""}', 4)
+    au User MyFlags call statusline#hoist('global', '%2*%{&paste ? "[paste]" : ""}%#StatusLineTermNC#', 40)
 
-    au User MyFlags call statusline#hoist('buffer', ' %1*%{statusline#tail_of_path()}%* ', 1)
-    au User MyFlags call statusline#hoist('buffer', '%-5r', 2)
-    au User MyFlags call statusline#hoist('buffer', '%{statusline#list_position()}', 3)
-    au User MyFlags call statusline#hoist('buffer', '%-6{exists("b:auto_open_fold_mappings") ? "[AOF]" : ""}', 4)
-    au User MyFlags call statusline#hoist('buffer', '%{statusline#fugitive()}', 5)
+    " The lower the priority, the closer to the left end of the status line the item is.
+    " Why the arglist at the very start?{{{
+    "
+    " So that the index is always in the same position.
+    " Otherwise, when you traverse the arglist, the index position changes every
+    " time the length of the filename  also changes; this is jarring when you're
+    " traversing fast and you're looking for a particular index.
+    "}}}
+    au User MyFlags call statusline#hoist('buffer', '%a', 10)
+    au User MyFlags call statusline#hoist('buffer', ' %1*%{statusline#tail_of_path()}%* ', 20)
+    au User MyFlags call statusline#hoist('buffer', '%-5r', 30)
+    au User MyFlags call statusline#hoist('buffer', '%-6{exists("b:auto_open_fold_mappings") ? "[AOF]" : ""}', 40)
+    au User MyFlags call statusline#hoist('buffer', '%{statusline#fugitive()}', 50)
     au User MyFlags call statusline#hoist('buffer',
-        \ '%2*%{&mod && bufname("%") != "" && &bt isnot# "terminal" ? "[+]" : ""}%*', 6)
+        \ '%2*%{&mod && bufname("%") != "" && &bt isnot# "terminal" ? "[+]" : ""}%*', 60)
 
-    au User MyFlags call statusline#hoist('window', '%-6{&l:pvw ? "[pvw]" : ""}', 1)
-    au User MyFlags call statusline#hoist('window', '%-7{&l:diff ? "[diff]" : ""}', 2)
-    au User MyFlags call statusline#hoist('window', '%-8(%.5l,%.3v%)', 3)
-    au User MyFlags call statusline#hoist('window', '%4p%% ', 4)
+    " The lower the priority, the closer to the right end of the status line the item is.
+    au User MyFlags call statusline#hoist('window', '%4p%% ', 10)
+    au User MyFlags call statusline#hoist('window', '%-8(%.5l,%.3v%)', 20)
+    au User MyFlags call statusline#hoist('window', '%-7{&l:diff ? "[diff]" : ""}', 30)
+    au User MyFlags call statusline#hoist('window', '%-6{&l:pvw ? "[pvw]" : ""}', 40)
 
     " Purpose:{{{
     "
@@ -90,14 +124,8 @@ augroup my_statusline
     "}}}
     au OptionSet diffopt,paste,virtualedit redrawt
 
-    if !has('nvim')
-        " remove local value set by default (filetype) plugins
-        au Filetype undotree,qf set stl<
-        " just show the line number in a command-line window
-        au CmdWinEnter * let &l:stl = '%=%-13l'
-        " same thing in some special files
-        au FileType tmuxprompt,websearch let &l:stl = '%y%=%-13l'
-    else
+    au CmdWinEnter * let &l:stl = '%=%-13l'
+    if has('nvim')
         " Which alternative to these autocmds could I use?{{{
         "
         " You could leverage the fact that `winnr()` evaluates to the number of:
@@ -139,7 +167,7 @@ augroup my_statusline
         " include a `%w`, `%p`, ...:
         "
         "     %{w:is_active ? "" : "%w"}
-        "                          ^^^
+        "                           ^^
         "                           ✘
         "
         " As a workaround, you can try to emulate them:
@@ -151,79 +179,28 @@ augroup my_statusline
         au BufWinEnter,WinEnter * setl stl=%!statusline#main(1)
         au WinLeave             * setl stl=%!statusline#main(0)
 
-        " Why?{{{
-        "
-        " Needed for some special buffers, because no `WinEnter` / `BufWinEnter`
-        " is fired right after their creation.
-        "}}}
-        " But, isn't there a `(Buf)WinEnter` after populating the qfl and opening its window?{{{
-        "
-        " Yes, but if  you close the window, then later  re-open it, there'll be
-        " no `(Buf)WinEnter`. OTOH, there will be a `FileType`.
-        "}}}
-        au Filetype  dirvish,man,qf setl stl=%!statusline#main(1)
-        au BufDelete UnicodeTable   setl stl=%!statusline#main(1)
-
-        au CmdWinEnter * let &l:stl = '%=%-13l'
-        " Why `WinEnter` *and* `BufWinEnter`?{{{
-        "
-        " `BufWinEnter` for when the buffer is displayed for the first time.
-        " `WinEnter` for when we move to another window, then come back.
-        "}}}
-        " Why not `FileType`?{{{
-        "
-        " Because there's a `BufWinEnter` after `FileType`.
-        " And  we have  an autocmd  listening to  `BufWinEnter` which  would set
-        " `'stl'` with the value `%!statusline#main(1)`.
-        "}}}
-        au WinEnter,BufWinEnter tmuxprompt,websearch let &l:stl = '%y%=%-13l'
+        " no `WinEnter` / `BufWinEnter` is fired right after the creation of a `UnicodeTable` buffer
+        au BufDelete UnicodeTable setl stl=%!statusline#main(1)
     augroup END
 endif
 
-" Public Functions {{{1
+" Functions {{{1
 fu statusline#hoist(scope, flag, ...) abort "{{{2
     unlockvar! s:flags_db
     if index(s:SCOPES, a:scope) == -1
         throw '[statusline] "'..a:scope..'" is not a valid scope'
     endif
-    if a:scope is# 'buffer' || a:scope is# 'window'
-        " TODO: I think we should get rid of this `ft` key.{{{
-        "
-        " It makes the code complex.
-        " Besides, I don't think we need it.
-        " You want a different status line in a given type of file?
-        " Just set the local value of `'stl'` from a filetype plugin.
-        "
-        " Note that this should work with Vim, because in the latter we only set
-        " the global value of `'stl'`.
-        " However, it  will be more  complex in Nvim,  because in the  latter we
-        " already  set the  local value  of  `'stl'` via  autocmds listening  to
-        " `WinEnter`/`WinLeave`/....
-        " But  it should  still  be possible:  try to  install  autocmds from  a
-        " filetype plugin with the pattern `<buffer>`.
-        "}}}
-        let ft = get(get(a:, '2', {}), 'ft', 'any')
-        if !has_key(s:flags_db[a:scope], ft)
-            let s:flags_db[a:scope][ft] = []
-        endif
-        " TODO: Remove duplication of code
-        let s:flags_db[a:scope][ft] += [{
-            \ 'flag': a:flag,
-            \ 'priority': get(a:, '1', 0),
-            \ }]
-    else
-        let s:flags_db[a:scope] += [{
-            \ 'flag': a:flag,
-            \ 'priority': get(a:, '1', 0),
-            \ }]
-    endif
+    let s:flags_db[a:scope] += [{
+        \ 'flag': a:flag,
+        \ 'priority': get(a:, '1', 0),
+        \ }]
     lockvar! s:flags_db
 endfu
 
 " Get flags from third-party plugins.
 const s:SCOPES = ['global', 'tabpage', 'buffer', 'window']
-let s:flags_db = {'global': [], 'tabpage': [], 'buffer': {'any': []}, 'window': {'any': []}}
-let s:flags = {'global': '', 'tabpage': '', 'buffer': {'any': []}, 'window': {'any': []}}
+let s:flags_db = {'global': [], 'tabpage': [], 'buffer': [], 'window': []}
+let s:flags = {'global': '', 'tabpage': '', 'buffer': '', 'window': ''}
 au! my_statusline VimEnter * if exists('#User#MyFlags')
     \ | do <nomodeline> User MyFlags
     \ | call s:build_flags()
@@ -231,20 +208,14 @@ au! my_statusline VimEnter * if exists('#User#MyFlags')
 
 fu s:build_flags() abort
     for scope in keys(s:flags)
-        if scope is# 'buffer' || scope is# 'window'
-            for filetype in keys(s:flags_db[scope])
-                " TODO: Remove duplication of code
-                let s:flags[scope][filetype] = join(map(sort(deepcopy(s:flags_db[scope][filetype]),
-                    \ {a,b -> a.priority - b.priority}),
-                    \ {_,v -> v.flag}
-                    \ ), '')
-            endfor
-        else
-            let s:flags[scope] = join(map(sort(deepcopy(s:flags_db[scope]),
-            \ {a,b -> a.priority - b.priority}),
+        let s:flags[scope] = sort(deepcopy(s:flags_db[scope]),
+            \ {a,b -> a.priority - b.priority})
+        if scope is# 'global' || scope is# 'window'
+            call reverse(s:flags[scope])
+        endif
+        let s:flags[scope] = join(map(s:flags[scope],
             \ {_,v -> v.flag}
             \ ), '')
-        endif
     endfor
     lockvar! s:flags | unlet! s:flags_db
 endfu
@@ -254,14 +225,11 @@ if !has('nvim')
     fu statusline#main() abort
         if g:statusline_winid != win_getid()
             let winnr = win_id2win(g:statusline_winid)
-            return getwinvar(winnr, '&ft', '') is# 'undotree'
-                \ ?     '%=%l/%L '
-                \ :     ' %1*%{statusline#tail_of_path()}%* '
-                \     ..'%='
-                \     ..'%-6{&l:pvw ? "[pvw]" : ""}'
-                \     ..'%-7{&l:diff ? "[diff]" : ""}'
-                \     ..(getwinvar(winnr, '&pvw', 0) ? '%p%% ' : '')
-                \     ..(getwinvar(winnr, '&bt', '') is# 'quickfix' ? '%-15(%l/%L%) ' : '')
+            return ' %1*%{statusline#tail_of_path()}%* '
+               \ ..'%='
+               \ ..'%-6{&l:pvw ? "[pvw]" : ""}'
+               \ ..'%-7{&l:diff ? "[diff]" : ""}'
+               \ ..(getwinvar(winnr, '&pvw', 0) ? '%p%% ' : '')
         else
             " How to make sure two consecutive items are separated by a space?{{{
             "
@@ -326,14 +294,7 @@ if !has('nvim')
             "
             " Besides, this is probably the most volatile flag.
             "}}}
-            " TODO: Maybe we should remove all plugin-specific flags.{{{
-            "
-            " Instead, we could register a flag from a plugin via a public function.
-            "
-            " For inspiration, have a look at this:
-            " https://github.com/tpope/vim-flagship/blob/master/doc/flagship.txt#L33
-            "
-            " ---
+            " TODO: Try to remove all plugin-specific flags.{{{
             "
             " Atm, `vim-fex` relies on  `vim-statusline` to correctly display
             " – in the status line – the name of the directory whose contents
@@ -357,15 +318,9 @@ if !has('nvim')
             " whether we  specified a priority;  if we  didn't, can it  cause an
             " issue?
             "}}}
-            " TODO: `[Caps]` is displayed too early on the status line.{{{
-            "
-            " Besides, we  should have the flag  should not be displayed  in the
-            " status  line  when  we  enable capslock  globally;  it  should  be
-            " displayed in the tab line.
-            "}}}
-            return get(s:flags.buffer, &ft, s:flags.buffer.any)
-            \    ..'%='
-            \    ..get(s:flags.window, &ft, s:flags.window.any)
+            return s:flags.buffer
+                \ ..'%='
+                \ ..s:flags.window
         endif
     endfu
     " %<{{{
@@ -517,38 +472,42 @@ else
     "}}}
     fu statusline#main(has_focus) abort
         if !a:has_focus
-            return  ' %1*%{&ft isnot# "undotree" ? statusline#tail_of_path() : ""}%* '
-                \ ..'%='
-                \ ..'%{line(".").."/"..line("$")} '
-                \ ..'%-6{&l:pvw ? "[pvw]" : ""}'
-                \ ..'%-7{&l:diff ? "[diff]" : ""}'
-                \ ..'%{&l:pvw ? float2nr(100.0 * line(".")/line("$")).."% " : ""}'
-                \ ..'%{&bt is# "quickfix"
-                \      ?     line(".").."/"..line("$")..repeat(" ", 16 - len(line(".").."/"..line("$")))
-                \      :     ""}'
+            return ' %1*%{statusline#tail_of_path()}%* '
+               \ ..'%='
+               \ ..'%-6{&l:pvw ? "[pvw]" : ""}'
+               \ ..'%-7{&l:diff ? "[diff]" : ""}'
+               \ ..'%{&l:pvw ? float2nr(100.0 * line(".")/line("$")).."% " : ""}'
         else
-            return get(s:flags.buffer, &ft, s:flags.buffer.any)
-            \    ..'%='
-            \    ..get(s:flags.window, &ft, s:flags.window.any)
+            return s:flags.buffer
+               \ ..'%='
+               \ ..s:flags.window
         endif
     endfu
 endif
 
 fu statusline#tabline() abort "{{{2
-    " TODO: Include `s:flags.tabpage` in the labels.
     let s = ''
+    let curtab = tabpagenr()
     let lasttab = tabpagenr('$')
     for i in range(1, lasttab)
-        " color the label of the current tab page with the HG TabLineSel
-        " the others with TabLine
-        let s ..= i == tabpagenr() ? '%#TabLineSel#' : '%#TabLine#'
+        " color the label  of the current tab page with  the HG `TabLineSel` the
+        " others with `TabLine`
+        let s ..= i == curtab ? '%#TabLineSel#' : '%#TabLine#'
 
-        " set the tab page nr
-        " used by the mouse to recognize the tab page on which we click
+        " set the tab page nr (used by the mouse to recognize the tab page on which we click)
+        " If you can't create enough tab pages because of `E541`,{{{
+        "
+        " you may want  to comment this line  to reduce the number  of `%` items
+        " used in `'tal'` which will increase the limit.
+        "}}}
         let s ..= '%'..i..'T'
 
-        " set the label by invoking another function `statusline#tabpage_label()`
-        let s ..= ' %{statusline#tabpage_label('..i..')} '..(i != lasttab ? '│' : '')
+        " set the label
+        let s ..= ' %{statusline#tabpage_label('..i..')} '
+        "\ append possible flag
+        \ ..s:flags.tabpage
+        "\ append separator before the next label
+        \ ..(i != lasttab ? '│' : '')
     endfor
 
     " color the rest of the line with TabLineFill and reset tab page nr
@@ -799,12 +758,6 @@ fu statusline#tail_of_path() abort "{{{2
 
     return &bt is# 'terminal'
        \ ?     '[term]'
-       \ : &ft is# 'dirvish'
-       \ ?     '[dirvish] '..expand('%:p')
-       \ : &bt is# 'quickfix'
-       \ ?     get(b:, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
-       \ : tail is# 'fex_tree'
-       \ ?     '/'
        \ : tail =~# '^diffpanel_\d\+$'
        \ ?     ''
        \ :  expand('%:p') =~# '^fugitive://'
@@ -813,7 +766,6 @@ fu statusline#tail_of_path() abort "{{{2
        \ ?     (&bt is# 'nofile' ? '[Scratch]' : '[No Name]')
        \ :     tail
 endfu
-
 " The following comment is kept for educational purpose, but no longer relevant.{{{
 " It applied to a different expression than the one currently used. Sth like:
 "
@@ -853,58 +805,6 @@ endfu
 "       It's the default value used for a buffer without any peculiarity:
 "       random type, random name
 "}}}
-fu statusline#list_position() abort "{{{2
-    if !get(g:, 'my_stl_list_position', 0)
-        return ''
-    endif
-
-    let [s:cur_col, s:cur_line, s:cur_buf] = [col('.'),     line('.'), bufnr('%')]
-    let [s:bufname, s:argidx, s:argc]      = [bufname('%'), argidx(),  argc()]
-
-    if g:my_stl_list_position == 1 && get(getqflist({'size': 0}), 'size', 0) > s:MAX_LIST_SIZE
-        return '[> '..s:MAX_LIST_SIZE..']'
-    elseif g:my_stl_list_position == 2 && argc() > s:MAX_LIST_SIZE
-        return '[> '..s:MAX_LIST_SIZE..']'
-    endif
-
-    let s:list = [
-        \ {'name': 'qfl', 'entries': getqflist()},
-        \ {'name': 'arg', 'entries': map(range(argc()), {_,v -> argv(v)})}
-        \ ][g:my_stl_list_position-1]
-
-    if empty(s:list.entries)
-        return '[]'
-    endif
-
-    let info = { 'qfl': getqflist({'idx':  0, 'size': 0}),
-        \        'arg': {'idx':  argidx(), 'size': argc()},
-        \ }[s:list.name]
-
-    if len(info) < 2 | return '[]' | endif
-
-    let [idx, size] = [info.idx, info.size]
-    let s:cur_entry = s:list.entries[idx-1]
-
-    return ( s:is_in_list_and_current()()
-       \ ?       {'qfl': 'C', 'arg': 'A'}[s:list.name]
-       \ :   s:is_in_list_but_not_current()()
-       \ ?       {'qfl': 'c', 'arg': 'a'}[s:list.name]
-       \ :       {'qfl': 'ȼ', 'arg': 'ā'}[s:list.name]
-       \   )
-       \ ..'['..(idx + (s:list.name is# 'arg' ? 1 : 0))..'/'..size..']'
-endfu
-
-" This function displays an item showing our position in the qfl or arglist.
-"
-" It only works when `g:my_stl_list_position` is set to 1 (which is not the case
-" by default).   To toggle  the display,  install autocmds  which set  the value
-" automatically when the qfl or arglist is populated.
-"
-" And/or use mappings, such as:
-"
-"     nno  <silent>  [oi  :let g:my_stl_list_position = 1<cr>
-"     nno  <silent>  ]oi  :let g:my_stl_list_position = 0<cr>
-"     nno  <silent>  coi  :let g:my_stl_list_position = !get(g:, 'my_stl_list_position', 0)<cr>
 
 fu statusline#fugitive() abort "{{{2
     if !get(g:, 'my_fugitive_branch', 0)
@@ -913,36 +813,3 @@ fu statusline#fugitive() abort "{{{2
     return exists('*fugitive#statusline') ? fugitive#statusline() : ''
 endfu
 "}}}1
-" Util Functions{{{1
-fu s:is_in_list_and_current() abort "{{{2
-    return
-    \      { 'qfl':
-    \               {->
-    \                        [s:cur_buf,         s:cur_line,       s:cur_col]
-    \                    ==# [s:cur_entry.bufnr, s:cur_entry.lnum, s:cur_entry.col]
-    \                ||
-    \                        [s:cur_buf,         s:cur_line]
-    \                    ==# [s:cur_entry.bufnr, s:cur_entry.lnum]
-    \                    &&  s:cur_entry.col == 0
-    \                ||
-    \                        s:cur_buf
-    \                    ==  s:cur_entry.bufnr
-    \                    && [s:cur_entry.lnum, s:cur_entry.col] ==# [0, 0]
-    \               },
-    \
-    \        'arg': {-> s:bufname is# argv(s:argidx)}
-    \      }[s:list.name]
-endfu
-
-fu s:is_in_list_but_not_current() abort "{{{2
-    return
-    \      {'qfl':
-    \              {-> index(
-    \                   map(deepcopy(s:list.entries), {_,v -> [v.bufnr, v.lnum, v.col]}),
-    \                   [s:cur_buf, s:cur_line, s:cur_col]) >= 0
-    \              },
-    \
-    \       'arg': {-> index(map(range(s:argc), {_,v -> argv(v)}), s:bufname) >= 0}
-    \      }[s:list.name]
-endfu
-" }}}1
