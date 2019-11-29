@@ -3,30 +3,51 @@ if exists('g:loaded_statusline')
 endif
 let g:loaded_statusline = 1
 
-" TODO: Set the status line in various special type of files.{{{
+" TODO: Check how your status lines react in a narrow window.
+" Use `%<` to control the truncation, and remove what's not important in such a case.
+" TODO: Review how you set `'stl'` in special types of files.{{{
 "
-" `fex_tree`, `qf`, `undotree`...
+"     " ~/.vim/plugged/vim-fex/plugin/fex.vim:15
+"         '%y%{fex#statusline#buffer()}%=%-8(%l,%c%) %p%% '
+"         '%y%{fex#statusline#buffer()}'
 "
-" In `fex_tree`,  we've installed an autocmd,  but it will probably  not work in
-" Nvim (read the rest of the comment to understand why).
+"     " ~/.vim/plugged/vim-freekeys/plugin/freekeys.vim:16
+"         '%y%=%l/%L'
+"         '%y'
 "
-" In  the   other  ones,  we   used  `User   MyFlags`  autocmds  in   the  past,
-" but  we've  commented  them,  because  we've  changed  the  implementation  of
-" `statusline#hoist()` (it doesn't support filetypes anymore).
+"     " ~/.vim/plugged/vim-qf/plugin/qf.vim:59
+"         '%{qf#statusline#buffer()}%=    %-'..winwidth(0)/8..'(%l/%L%) '
+"         '%{get(b:, "qf_is_loclist", 0) ? "[LL] ": "[QF] "}%=    %-'..winwidth(0)/8..'(%l/%L%) '
 "
-" ---
+"     " ~/.vim/plugin/dirvish.vim:3
+"     '%y %F%<%=%-'..winwidth(0)/8..'(%l/%L%) '
 "
-" The status line in a non-focused qf window *was* noisy (I've fixed it).
-" Are there other special types of files for which the same issue applies.
-"}}}
-" TODO: Review how you set `'stl'` in special types of files (dirvish, fex, websearch).{{{
+"     " ~/.vim/plugin/tmuxprompt.vim:3
+"     '%y%=%-'..winwidth(0)/8..'l'
+"
+"     " ~/.vim/plugin/undotree.vim:7
+"     '%=%l/%L '
+"
+"     " ~/.vim/plugin/websearch.vim:3
+"     '%y%=%-'..winwidth(0)/8..'l'
 "
 " Make sure it's not too noisy when unfocused.
+"
+" Make sure it's consistent.
+"
 " Also, try to consolidate similar settings in a single autocmd in the same file.
 " That is, if you notice that for most special types of files, you want/need the
 " same status line, write a single autocmd to set all of them.
 " It  would create  an easy  way  to add/remove  an `'stl'`  setting for  future
 " special types of files.
+"}}}
+" TODO: Read the following links to improve the statusline.{{{
+
+" Blog post talking about status line customization:
+" http://www.blaenkdenum.com/posts/a-simpler-vim-statusline
+
+" Vim Powerline-like status line without the need of any plugin:
+" https://gist.github.com/ericbn/f2956cd9ec7d6bff8940c2087247b132
 "}}}
 " TODO: Document which refactoring we will need to perform once 8.1.1372 has been ported to Nvim.{{{
 "
@@ -37,14 +58,21 @@ let g:loaded_statusline = 1
 " Document everything here, so  that the day the patch is  ported, we can easily
 " refactor our scripts.
 "}}}
-" TODO: Read the following links to improve the statusline.{{{
 
-" Blog post talking about status line customization:
-" http://www.blaenkdenum.com/posts/a-simpler-vim-statusline
+" Init {{{1
 
-" Vim Powerline-like status line without the need of any plugin:
-" https://gist.github.com/ericbn/f2956cd9ec7d6bff8940c2087247b132
-"}}}
+" no more than `x` characters in a tab label
+const s:TABLABEL_MAXSIZE = 20
+
+" no more than `x` tab labels on the right/left of the tab label currently focused
+const s:MAX_TABLABELS = 1
+
+" HG to use to highlight the flags in the tab line
+const s:HG_TAL_FLAGS = 'StatusLineTermNC'
+
+const s:SCOPES = ['global', 'tabpage', 'buffer', 'window']
+let s:flags_db = {'global': [], 'tabpage': [], 'buffer': [], 'window': []}
+let s:flags = {'global': '', 'tabpage': '', 'buffer': '', 'window': ''}
 
 " Options {{{1
 
@@ -63,15 +91,130 @@ if !has('nvim')
     set stl=%!statusline#main()
 endif
 
+" Commands {{{1
+
+com -bar -complete=custom,s:complete -nargs=? -range=% StlFlags call s:display_flags(<q-args>)
+
+fu s:complete(_a, _l, _p) abort
+    return join(s:SCOPES, "\n")
+endfu
+
+fu s:display_flags(scope) abort
+    let scopes = a:scope is# '' ? s:SCOPES : [a:scope]
+    let lines = []
+    for scope in scopes
+        " underline each `scope ...` line with a `---` line
+        let lines += ['', 'scope '..scope, substitute('scope '..scope, '.', '-', 'g'), '']
+        let lines += map(deepcopy(s:flags_db[scope]),
+            \ {_,v -> substitute(v.flag, '\s\+$', '\=repeat("█", len(submatch(0)))', '') .."\x01".. v.priority})
+        " `substitute()` makes visible a trailing whitespace in a flag
+    endfor
+    exe 'pedit '..tempname()
+    wincmd P
+    if ! &pvw | return | endif
+    setl bt=nofile nobl noswf nowrap
+    call append(0, lines)
+    let range = '/^---//\d\+$/ ; /\d\+$//^\s*$\|\%$/-'
+    " align priorities in a column
+    sil! keepj keepp g/^---/exe range.."!column -t -s\x01"
+    " for each scope, sort the flags according to their priority
+    sil! keepj keepp g/^---/exe range..'sort /.\{-}\ze\d\+$/ n'
+    "  │
+    "  └ in case the scope does not contain any flag
+    1d_
+    nmap <buffer><nowait><silent> q <plug>(my_quit)
+endfu
+
 " Autocmds {{{1
 
 augroup my_statusline
     au!
 
-    " The lower the priority, the closer to the right end of the tab line the item is.
-    " Warning: If you highlight a flag, make sure to reset it with `%#StatusLineTermNC#` at the end.
+    " get flags from third-party plugins
+    au VimEnter * if exists('#User#MyFlags')
+        \ | do <nomodeline> User MyFlags
+        \ | call s:build_flags()
+        \ | endif
+
+    " How to make sure two consecutive flags A and B are visually well separated?{{{
+    "
+    " If the length of A is fixed (e.g. 12):
+    "
+    "     %-13{item}
+    "      ├─┘
+    "      └ make the length of the flag one cell longer than the text it displays
+    "        and left-align it
+    "
+    " You could also append a space manually:
+    "
+    "     '%{item} '
+    "             ^
+    "
+    " But the space would be displayed unconditionally which you probably don't want.
+    "
+    " If  the length  of A  can  vary, highlight  it  with a  HG different  than
+    " `StatusLine` so that it clearly stands out.
+    "}}}
+    " What are the "buffer", "window", "tabpage" and "global" scopes?{{{
+    "
+    " A flag may give an information about:
+    "
+    "    - a buffer; we say it's in the *buffer scope*
+    "    - a window; we say it's in the *window scope*
+    "    - all buffers in a tabpage; we say it's in the *tabpage scope*
+    "    - some setting which applies to all buffers/windows/tabpages; we say it's in the *global scope*
+    "
+    " By convention, we display a flag in:
+    "
+    "    - the buffer scope, on the left of the status line
+    "    - the window scope, on the right of the status line
+    "    - the tabpage scope, at the end of a tab label
+    "    - the global scope, on the right of the tab line
+    "
+    " That's more or less what `vim-flagship` does.
+    " This is a useful convention because it makes a flag give more information;
+    " its position tells us what is affected.
+    "}}}
+    " What is a "volatile" flag?{{{
+    "
+    " For any given flag, you should consider 2 characteristics:
+    "
+    "    - how frequent is it displayed?
+    "    - how stable is it?
+    "
+    " During a one-hour Vim  session, if a flag A is  displayed for ten minutes,
+    " and a flag B for five minutes, A is more **frequent** than B.
+    " But if A  is on for one minute,  then off for one minute, then  on for one
+    " minute etc.  while B is  on for five consecutive  minutes, then B  is more
+    " **stable** than A.
+    "
+    " The  more  stable/frequent  a  flag  is,  the more  on  the  left  of  the
+    " buffer/tabpage scope  – or on  the right of  the window/global scope  – it
+    " should be.
+    "}}}
+    " I have 2 flags A and B in the same scope.  I don't know which one should be displayed first!{{{
+    "
+    " Ask yourself this: how frequently could I be in a situation where B is on,
+    " and the state of A changes (on → off, off → on)?
+    "
+    " If the answer is "often", then B should be displayed:
+    "
+    "    - before A if they are in the buffer/tabpage scope
+    "    - after A if they are in the tabpage/global scope
+    "
+    " The goal is to prevent as much  as possible that a recently displayed flag
+    " disturbs the positions of existing flags.
+    "}}}
+    " For the priorities, what type of numbers should I use?{{{
+    "
+    " Follow this  useful convention: any  flag installed from this  file should
+    " have a priority which is a multiple of 10.
+    " For flags installed from third-party plugins, use priorities which are not
+    " multiples of 10.
+    "}}}
+    " the lower the priority, the closer to the right end of the tab line the flag is
     au User MyFlags call statusline#hoist('global',
-        \ '%6{!exists("#auto_save_and_read") && exists("g:autosave_on_startup") ? "[NAS]" : ""}', 10)
+        \ '%6{!exists("#auto_save_and_read") ? "[NAS]" : ""}', 10)
     au User MyFlags call statusline#hoist('global', '%9{&ve is# "all" ? "[ve=all]" : ""}', 20)
     au User MyFlags call statusline#hoist('global', '%16{&dip =~# "iwhiteall" ? "[dip~iwhiteall]" : ""}', 30)
     " Why an indicator for the 'paste' option?{{{
@@ -83,9 +226,9 @@ augroup my_statusline
     " Anyway, this is  an option which has too many  effects; we need to
     " be informed immediately whenever it's set.
     "}}}
-    au User MyFlags call statusline#hoist('global', '%2*%{&paste ? "[paste]" : ""}%#StatusLineTermNC#', 40)
+    au User MyFlags call statusline#hoist('global', '%2*%{&paste ? "[paste]" : ""}', 40)
 
-    " The lower the priority, the closer to the left end of the status line the item is.
+    " the lower the priority, the closer to the left end of the status line the flag is
     " Why the arglist at the very start?{{{
     "
     " So that the index is always in the same position.
@@ -96,35 +239,29 @@ augroup my_statusline
     au User MyFlags call statusline#hoist('buffer', '%a', 10)
     au User MyFlags call statusline#hoist('buffer', ' %1*%{statusline#tail_of_path()}%* ', 20)
     au User MyFlags call statusline#hoist('buffer', '%-5r', 30)
-    au User MyFlags call statusline#hoist('buffer', '%-6{exists("b:auto_open_fold_mappings") ? "[AOF]" : ""}', 40)
-    au User MyFlags call statusline#hoist('buffer', '%{statusline#fugitive()}', 50)
+    au User MyFlags call statusline#hoist('buffer', '%{statusline#fugitive()}', 40)
+    au User MyFlags call statusline#hoist('buffer', '%-6{exists("b:auto_open_fold_mappings") ? "[AOF]" : ""}', 50)
     au User MyFlags call statusline#hoist('buffer',
-        \ '%2*%{&mod && bufname("%") != "" && &bt isnot# "terminal" ? "[+]" : ""}%*', 60)
+        \ '%2*%{&mod && bufname("%") != "" && &bt !=# "terminal" ? "[+]" : ""}', 60)
 
-    " The lower the priority, the closer to the right end of the status line the item is.
+    " the lower the priority, the closer to the right end of the status line the flag is
     au User MyFlags call statusline#hoist('window', '%4p%% ', 10)
     au User MyFlags call statusline#hoist('window', '%-8(%.5l,%.3v%)', 20)
-    au User MyFlags call statusline#hoist('window', '%-7{&l:diff ? "[diff]" : ""}', 30)
-    au User MyFlags call statusline#hoist('window', '%-6{&l:pvw ? "[pvw]" : ""}', 40)
+    au User MyFlags call statusline#hoist('window', '%-6{&l:pvw ? "[pvw]" : ""}', 30)
+    au User MyFlags call statusline#hoist('window', '%-7{&l:diff ? "[diff]" : ""}', 40)
 
     " Purpose:{{{
     "
     " We use the tab  line to display some flags telling  us whether some global
     " options are set.
     " For some reason, the tab line is not automatically redrawn when we (re)set
-    " an option (contrary  to the status line). We want to  be informed *as soon
-    " as* these options are (re)set.
-    "}}}
-    " TODO: If we add or remove flags from the tab line, we may need to edit the pattern. This is brittle.{{{
-    "
-    " Once you have a mechanism emulating `vim-flagship`, and you can "register"
-    " flag via a `User MyFlag` autocmd,  try to register the flags via autocmds;
-    " then make the plugin inspect all global flags and extract the option names
-    " to build the pattern dynamically.
+    " an option (contrary to the status  line). We want to be informed *as soon*
+    " *as* these options are (re)set.
     "}}}
     au OptionSet diffopt,paste,virtualedit redrawt
 
-    au CmdWinEnter * let &l:stl = '%=%-13l'
+    au CmdWinEnter * let &l:stl = '%=%-'..winwidth(0)/8..'l'
+
     if has('nvim')
         " Which alternative to these autocmds could I use?{{{
         "
@@ -181,8 +318,9 @@ augroup my_statusline
 
         " no `WinEnter` / `BufWinEnter` is fired right after the creation of a `UnicodeTable` buffer
         au BufDelete UnicodeTable setl stl=%!statusline#main(1)
-    augroup END
-endif
+            \ | let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')..'| set stl<'
+    endif
+augroup END
 
 " Functions {{{1
 fu statusline#hoist(scope, flag, ...) abort "{{{2
@@ -190,21 +328,20 @@ fu statusline#hoist(scope, flag, ...) abort "{{{2
     if index(s:SCOPES, a:scope) == -1
         throw '[statusline] "'..a:scope..'" is not a valid scope'
     endif
+    let flag = a:flag
+    let pat = '^%[1-9]\*\|^%#[^#]\+#'
+    if (a:scope is# 'global' || a:scope is# 'window') && flag =~# pat
+        " if a flag is highlighted, restore normal highlight
+        let flag ..= '%#'..s:HG_TAL_FLAGS..'#'
+    elseif (a:scope is# 'buffer' || a:scope is# 'tabpage') && flag =~# pat
+        let flag ..= '%*'
+    endif
     let s:flags_db[a:scope] += [{
-        \ 'flag': a:flag,
+        \ 'flag': flag,
         \ 'priority': get(a:, '1', 0),
         \ }]
     lockvar! s:flags_db
 endfu
-
-" Get flags from third-party plugins.
-const s:SCOPES = ['global', 'tabpage', 'buffer', 'window']
-let s:flags_db = {'global': [], 'tabpage': [], 'buffer': [], 'window': []}
-let s:flags = {'global': '', 'tabpage': '', 'buffer': '', 'window': ''}
-au! my_statusline VimEnter * if exists('#User#MyFlags')
-    \ | do <nomodeline> User MyFlags
-    \ | call s:build_flags()
-    \ | endif
 
 fu s:build_flags() abort
     for scope in keys(s:flags)
@@ -213,11 +350,9 @@ fu s:build_flags() abort
         if scope is# 'global' || scope is# 'window'
             call reverse(s:flags[scope])
         endif
-        let s:flags[scope] = join(map(s:flags[scope],
-            \ {_,v -> v.flag}
-            \ ), '')
+       let s:flags[scope] = join(map(s:flags[scope], {_,v -> v.flag}), '')
     endfor
-    lockvar! s:flags | unlet! s:flags_db
+    lockvar! s:flags
 endfu
 
 " statusline {{{2
@@ -231,93 +366,6 @@ if !has('nvim')
                \ ..'%-7{&l:diff ? "[diff]" : ""}'
                \ ..(getwinvar(winnr, '&pvw', 0) ? '%p%% ' : '')
         else
-            " How to make sure two consecutive items are separated by a space?{{{
-            "
-            " If they have a fixed length (e.g. 12):
-            "
-            "     %-13{item}
-            "      ├─┘
-            "      └ make the length of the item is one cell longer than the text it displays
-            "        and left-align the item
-            "
-            " Otherwise append a space manually:
-            "
-            "     '%{item} '
-            "             ^
-            "
-            " The first syntax  is better, because the space is  appended on the
-            " condition the  item is not empty;  the second syntax adds  a space
-            " unconditionally.
-            "}}}
-            " About the positions of the indicators.{{{
-            "
-            " Everything which is tied to:
-            "
-            "    - a buffer should be on the left of the status line
-            "    - a window should be on the right of the status line
-            "    - a tab page should be on the right of a tab label
-            "    - nothing in particular should be at the start of the tab line
-            "
-            " When several flags must be displayed in the same location, put the
-            " less  volatile  first (to  avoid  many  flags  to "dance"  when  a
-            " volatile flag is frequently hidden/displayed).
-            " Exception: On  the right  of the  status  line, I  think the  most
-            " volatile flags should be on the left...
-            "
-            " That's what `vim-flagship` does, and it makes sense.
-            " In particular, by default, the Vim status line puts buffer-related
-            " info on the left of the status line, and the window-related one on
-            " the right; let's respect this convention.
-            "
-            " ---
-            "
-            " Let the modified flag (`[+]`) at the end of the left part of the status line.
-            "
-            "     \       ..'%2*%{&modified && ... ? "[+]" : ""}%*'
-            "
-            " If  you move  it before,  then you'll  need to  append a  space to
-            " separate the flag from the next one:
-            "
-            "     \       ..'%2*%{&modified && ... ? "[+] " : ""}%*'
-            "                                            ^
-            "
-            " But the space will be highlighted, which we don't want.
-            " So, you'll need to move it outside `%{}`:
-            "
-            "     \       ..'%2*%{&modified && ... ? "[+]" : ""}%* '
-            "                                                     ^
-            "
-            " But this means that the space  will be included in the status line
-            " UNconditionally. As  a result,  when the  buffer is  not modified,
-            " there will be  2 spaces between the flags  surrounding the missing
-            " `[+]`.
-            "
-            " Besides, this is probably the most volatile flag.
-            "}}}
-            " TODO: Try to remove all plugin-specific flags.{{{
-            "
-            " Atm, `vim-fex` relies on  `vim-statusline` to correctly display
-            " – in the status line – the name of the directory whose contents
-            " is being viewed.
-            "
-            " That is not good.
-            " Our plugins should have as few dependencies as possible.
-            " A `fex_tree` buffer should set its own status line.
-            "
-            " Make sure no other plugin relies on `vim-statusline` to set its
-            " status line.
-            "
-            " ---
-            "
-            " We refer to `fex_tree` (and other plugins?) in other functions:
-            " `statusline#tabpage_label`, `statusline#tail_of_path`.
-            "}}}
-            " TODO: Review the positioning/ordering of all our flags{{{
-            "
-            " In  particular,  look  for  `User MyFlags`  everywhere  and  check
-            " whether we  specified a priority;  if we  didn't, can it  cause an
-            " issue?
-            "}}}
             return s:flags.buffer
                 \ ..'%='
                 \ ..s:flags.window
@@ -504,17 +552,17 @@ fu statusline#tabline() abort "{{{2
 
         " set the label
         let s ..= ' %{statusline#tabpage_label('..i..')} '
-        "\ append possible flag
-        \ ..s:flags.tabpage
-        "\ append separator before the next label
-        \ ..(i != lasttab ? '│' : '')
+            "\ append possible flag
+            \ ..s:flags.tabpage
+            "\ append separator before the next label
+            \ ..(i != lasttab ? '│' : '')
     endfor
 
-    " color the rest of the line with TabLineFill and reset tab page nr
+    " color the rest of the line with `TabLineFill` (until the flags), and reset tab page nr (`%T`)
     let s ..= '%#TabLineFill#%T'
 
-    " append global flags
-    let s ..= '%=%#StatusLineTermNC#'..s:flags.global
+    " append global flags on the right of the tab line
+    let s ..= '%=%#'..s:HG_TAL_FLAGS..'#'..s:flags.global
 
     " If you want to get a closing label, try this:{{{
     "
@@ -558,8 +606,6 @@ endfu
 fu statusline#tabpage_label(n) abort "{{{2
     let [curtab, lasttab] = [tabpagenr(), tabpagenr('$')]
 
-    " no more than `x` labels on the right/left of the label currently focused
-    let x = 1
     " Shortest Distance From Ends
     let sdfe = min([curtab - 1, lasttab - curtab])
     " How did you get this expression?{{{
@@ -658,7 +704,8 @@ fu statusline#tabpage_label(n) abort "{{{2
     "     else
     "         max_dist = 2 + (2 - sdfe)
     "
-    " Which can be generalized to an arbitrary number of labels, by replacing `2` with `x`:
+    " Which  can be generalized to  an arbitrary number of  labels, by replacing
+    " `2` with a variable `x`:
     "
     "     sdfe = min([curtab - 1, lasttab - curtab])
     "     if sdfe >= x
@@ -666,7 +713,7 @@ fu statusline#tabpage_label(n) abort "{{{2
     "     else
     "         max_dist = x + (x - sdfe)
     "}}}
-    let max_dist = x + (sdfe >= x ? 0 : x - sdfe)
+    let max_dist = s:MAX_TABLABELS + (sdfe >= s:MAX_TABLABELS ? 0 : s:MAX_TABLABELS - sdfe)
     " Alternative:{{{
     " for 3 labels:{{{
     "
@@ -693,42 +740,40 @@ fu statusline#tabpage_label(n) abort "{{{2
 
     if abs(curtab - a:n) > max_dist | return a:n | endif
 
-    "             ┌ I give you the nr of a tab page
-    "             ├─────┐
-    let buflist = tabpagebuflist(a:n)
-    "                    ├─────┘
-    "                    └ give me its buffer list:
-    "                      for each window in the tab page, the function
-    "                      adds the nr of the buffer that it displays
-    "                      inside a list, and returns the final list
-    "
     let winnr = tabpagewinnr(a:n)
-    "                  ├───┘
-    "                  └ give me the number of its focused window
+    let bufnr = winbufnr(win_getid(winnr, a:n))
+    let bufname = fnamemodify(bufname(bufnr), ':p')
 
-    let bufnr = buflist[winnr - 1]
-
-    "          ┌ I give you the nr of a buffer
-    "          ├─┐
-    let name = bufname(bufnr)
-    "             ├──┘
-    "             └ give me its name
-
-    " Alternative to `get(b:, 'qf_is_loclist', 0)` :
+    " Display the cwd iff:{{{
     "
-    "     get(get(getwininfo(win_getid(winnr, a:n)), 0, {}), 'loclist', 0)
+    "    - the label is for the current tab page
+    "
+    "      In that case, we don't care about the name of the current file:
+    "
+    "        - it's already in the status line
+    "        - it's complete in the status line
+    "
+    "    - the file is in a version-controlled project
+    "
+    "}}}
+    " I'm not satisfied with the labels!{{{
+    "
+    " Have a look at this for more inspiration:
+    "
+    " https://github.com/tpope/vim-flagship/issues/2#issuecomment-113824638
+    "}}}
+    " `b:root_dir` is set by `vim-cwd`
+    if a:n == curtab || getbufvar(bufnr, 'root_dir', '') isnot# ''
+        let cwd = getcwd(winnr, a:n)
+        let cwd = pathshorten(substitute(cwd, '^\V'..escape($HOME, '\')..'/', '', ''))
+        " append a slash to avoid confusion with a buffer name
+        if cwd !~# '/' | let cwd ..= '/' | endif
+        let label = cwd
+    " otherwise, just display the name of the focused buffer
+    else
+        let label = fnamemodify(bufname, ':t')
+    endif
 
-    let label = getbufvar(bufnr, '&bt', '') is# 'terminal'
-       \ ?     '[term]'
-       \ : name[-1:] is# '/'
-       \ ?     fnamemodify(name, ':h:t')..'/'
-       \ : getbufvar(bufnr, '&bt') is# 'quickfix'
-       \ ?     getbufvar(bufnr, 'qf_is_loclist', 0) ? '[LL]' : '[QF]'
-       \ : name =~# '^/tmp/.*/fex_tree$'
-       \ ?     '└ /'
-       \ : name =~# '^/tmp/.*/fex_tree'
-       \ ?     '└ '..fnamemodify(name, ':t')
-       \ :     fnamemodify(name, ':t')
     " Format the label so that it never exceeds 10 characters, and is centered.{{{
     "
     " This  is useful  to prevent  the tabline  from "dancing"  when we  focus a
@@ -747,9 +792,9 @@ fu statusline#tabpage_label(n) abort "{{{2
     " Anyway,  we will  rarely edit  files  with multibyte  characters in  their
     " names...
     "}}}
-    let label = label[:9]
+    let label = label[: s:TABLABEL_MAXSIZE - 1]
     let len = len(label)
-    let cnt = (10 - len)/2
+    let cnt = (s:TABLABEL_MAXSIZE - len)/2
     return repeat(' ', cnt)..label..repeat(' ', cnt+len%2)
 endfu
 
@@ -758,10 +803,6 @@ fu statusline#tail_of_path() abort "{{{2
 
     return &bt is# 'terminal'
        \ ?     '[term]'
-       \ : tail =~# '^diffpanel_\d\+$'
-       \ ?     ''
-       \ :  expand('%:p') =~# '^fugitive://'
-       \ ?     '[fgt]'
        \ : tail is# ''
        \ ?     (&bt is# 'nofile' ? '[Scratch]' : '[No Name]')
        \ :     tail
