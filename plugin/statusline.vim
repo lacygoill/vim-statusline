@@ -3,35 +3,35 @@ if exists('g:loaded_statusline')
 endif
 let g:loaded_statusline = 1
 
-" TODO: Check how your status lines react in a narrow window.
-" Use `%<` to control the truncation, and remove what's not important in such a case.
 " TODO: Review how you set `'stl'` in special types of files.{{{
 "
-"     " ~/.vim/plugged/vim-fex/plugin/fex.vim:15
-"         '%y%{fex#statusline#buffer()}%=%-8(%l,%c%) %p%% '
-"         '%y%{fex#statusline#buffer()}'
+"     " ~/.vim/plugged/vim-fex/ftplugin/fex.vim:41
+"         '%y %{fex#statusline#buffer()}%<%=%-'..winwidth(0)/8..'(%l/%L%) '
+"         '%y %{fex#statusline#buffer()}'
 "
-"     " ~/.vim/plugged/vim-freekeys/plugin/freekeys.vim:16
+"     " ~/.vim/after/ftplugin/dirvish.vim:3
+"     '%y %F%<%=%-'..winwidth(0)/8..'(%l/%L%) '
+"     '%y %F'
+"
+"     " ~/.vim/plugged/vim-freekeys/after/ftplugin/freekeys.vim:1
 "         '%y%=%l/%L'
 "         '%y'
 "
-"     " ~/.vim/plugged/vim-qf/plugin/qf.vim:59
+"     " ~/.vim/plugged/vim-qf/after/ftplugin/qf.vim:107
 "         '%{qf#statusline#buffer()}%=    %-'..winwidth(0)/8..'(%l/%L%) '
 "         '%{get(b:, "qf_is_loclist", 0) ? "[LL] ": "[QF] "}%=    %-'..winwidth(0)/8..'(%l/%L%) '
 "
-"     " ~/.vim/plugin/dirvish.vim:3
-"     '%y %F%<%=%-'..winwidth(0)/8..'(%l/%L%) '
-"
-"     " ~/.vim/plugin/tmuxprompt.vim:3
+"     " ~/.vim/ftplugin/tmuxprompt.vim:13
+"     " ~/.vim/ftplugin/websearch.vim:13
 "     '%y%=%-'..winwidth(0)/8..'l'
+"     '%y'
 "
-"     " ~/.vim/plugin/undotree.vim:7
-"     '%=%l/%L '
+"     " ~/.vim/plugin/undotree.vim:62
+"     '%h'
 "
-"     " ~/.vim/plugin/websearch.vim:3
-"     '%y%=%-'..winwidth(0)/8..'l'
-"
-" Make sure it's not too noisy when unfocused.
+"     " ~/.vim/autoload/plugin/undotree.vim:132
+"     ' %l,%c%=%{&l:pvw ? "[pvw]" : ""} %p%% '
+"     '%=%{&l:pvw ? "[pvw]" : ""} %p%% '
 "
 " Make sure it's consistent.
 "
@@ -41,23 +41,103 @@ let g:loaded_statusline = 1
 " It  would create  an easy  way  to add/remove  an `'stl'`  setting for  future
 " special types of files.
 "}}}
-" TODO: Read the following links to improve the statusline.{{{
-
-" Blog post talking about status line customization:
-" http://www.blaenkdenum.com/posts/a-simpler-vim-statusline
-
-" Vim Powerline-like status line without the need of any plugin:
-" https://gist.github.com/ericbn/f2956cd9ec7d6bff8940c2087247b132
-"}}}
-" TODO: Document which refactoring we will need to perform once 8.1.1372 has been ported to Nvim.{{{
+" TODO: Check how your status lines react in a narrow window.{{{
 "
-" Search for `stl` everywhere.
-" What will become useless?
-" What could be simplified?
-"
-" Document everything here, so  that the day the patch is  ported, we can easily
-" refactor our scripts.
+" Use `%<` to control the truncation, and remove what's not important in such a case.
 "}}}
+
+" Doc {{{1
+" %<{{{2
+"
+" It means: "do *not* truncate what comes before".
+" If needed, Vim can truncate what comes after; and if it does, it truncates
+" the start of the text, not the end:
+"
+"     $ vim -Nu NONE +'set ls=2|set stl=abcdef%<ghijklmnopqrstuvwxyz' +'10vs'
+"     abcdef<xyz~
+"
+" Notice how  the *start* of  the text `ghi...xyz`  has been truncated,  not the
+" end. This is why `<`  was chosen for the item `%<` (and not  `>`), and this is
+" why `<` is positioned *before* the truncated text.
+"
+" However, if the text that comes before  `%<` is too long, Vim will have to
+" truncate it:
+"
+"     $ vim -Nu NONE +'set ls=2|set stl=abcdefghijklmn%<opqrstuvwxyz' +'10vs'
+"     abcdefghi>~
+"
+" Notice that this time, `>` is positioned *after* the truncated text.
+"
+" ---
+"
+" To control truncations, you must use:
+"
+"    - `%<` outside `%{}`
+"    - `.123` inside `%{}` (e.g. `%.123{...}`)
+
+" %(%) {{{2
+"
+" Useful to set the desired width / justification of a group of items.
+"
+" Example:
+"
+"      ┌ left justification
+"      │ ┌ width of the group
+"      │ │
+"      │ │ ┌ various items inside the group (%l, %c, %V)
+"      │ │ ├─────┐
+"     %-15(%l,%c%V%)
+"     │           ├┘
+"     │           └ end of group
+"     │
+"     └ beginning of group
+"       the percent is separated from the open parenthesis because of the width field
+"
+" For more info, `:h 'stl`:
+"
+" > ( - Start of item group.  Can  be used for setting the width and alignment
+" >                           of a section.  Must be followed by %) somewhere.
+"
+" > ) - End of item group.    No width fields allowed.
+
+" -123  field {{{2
+
+" Set the width of a field to 123 cells.
+"
+" Can be used (after the 1st percent sign) with all kinds of items:
+"
+"    - `%l`
+"    - `%{...}`
+"    - `%(...%)`
+"
+" Useful to append a space to an item, but only if it's not empty:
+"
+"     %-12item
+"         ├──┘
+"         └ suppose that the width of the item is 11
+"
+" The width  of the field  is one unit  greater than the one  of the item,  so a
+" space will be added; and the left-justifcation  will cause it to appear at the
+" end (instead of the beginning).
+
+" .123  field {{{2
+"
+" Limit the width of an item to 123 cells:
+"
+"     %.123item
+"
+" Can be used (after the 1st percent sign) with all kinds of items:
+"
+"    - `%l`
+"    - `%{...}`
+"    - `%(...%)`
+"
+" Truncation occurs with:
+"
+"    - a '<' at the start for text items
+"    - a '>' at the end for numeric items (only `maxwid - 2` digits are kept)
+"      the number after '>' stands for how many digits are missing
+"}}}1
 
 " Init {{{1
 
@@ -371,97 +451,6 @@ if !has('nvim')
                 \ ..s:flags.window
         endif
     endfu
-    " %<{{{
-    "
-    " It means: "do *not* truncate what comes before".
-    " If needed, Vim can truncate what comes after; and if it does, it truncates
-    " the start of the text, not the end:
-    "
-    "     $ vim -Nu NONE +'set ls=2|set stl=abcdef%<ghijklmnopqrstuvwxyz' +'10vs'
-    "     abcdef<xyz~
-    "
-    " Notice how  the text `ghi...xyz`  has been  truncated from the  start, not
-    " from the end. This  is why `<` was  chosen for the item `%<`,  and this is
-    " why `<` is positioned *before* the truncated text.
-    "
-    " However, if the text that comes before  `%<` is too long, Vim will have to
-    " truncate it:
-    "
-    "     $ vim -Nu NONE +'set ls=2|set stl=abcdefghijklmn%<opqrstuvwxyz' +'10vs'
-    "     abcdefghi>~
-    "
-    " Notice that this time, `>` is positioned *after* the truncated text.
-    "
-    " ---
-    "
-    " To control truncations, you must use:
-    "
-    "    - `%<` outside `%{}`
-    "    - `.123` inside `%{}` (e.g. `%.123{...}`)
-    "}}}
-    " %(%) {{{
-    "
-    " Useful to set the desired width / justification of a group of items.
-    "
-    " Example:
-    "
-    "      ┌ left justification
-    "      │ ┌ width of the group
-    "      │ │
-    "      │ │ ┌ various items inside the group (%l, %c, %V)
-    "      │ │ ├─────┐
-    "     %-15(%l,%c%V%)
-    "     │           ├┘
-    "     │           └ end of group
-    "     │
-    "     └ beginning of group
-    "       the percent is separated from the open parenthesis because of the width field
-    "
-    " For more info, `:h 'stl`:
-    "
-    " > ( - Start of item group.  Can  be used for setting the width and alignment
-    " >                           of a section.  Must be followed by %) somewhere.
-    "
-    " > ) - End of item group.    No width fields allowed.
-    "}}}
-    " -123  field {{{
-
-    " Set the width of a field to 123 cells.
-    "
-    " Can be used (after the 1st percent sign) with all kinds of items:
-    "
-    "    - `%l`
-    "    - `%{...}`
-    "    - `%(...%)`
-    "
-    " Useful to append a space to an item, but only if it's not empty:
-    "
-    "     %-12item
-    "         ├──┘
-    "         └ suppose that the width of the item is 11
-    "
-    " The width  of the field  is one unit  greater than the one  of the item,  so a
-    " space will be added; and the left-justifcation  will cause it to appear at the
-    " end (instead of the beginning).
-    "}}}
-    " .123  field {{{
-    "
-    " Limit the width of an item to 123 cells:
-    "
-    "     %.123item
-    "
-    " Can be used (after the 1st percent sign) with all kinds of items:
-    "
-    "    - `%l`
-    "    - `%{...}`
-    "    - `%(...%)`
-    "
-    " Truncation occurs with:
-    "
-    "    - a '<' at the start for text items
-    "    - a '>' at the end for numeric items (only `maxwid - 2` digits are kept)
-    "      the number after '>' stands for how many digits are missing
-    "}}}
     " What's the difference between `g:statusline_winid` and `g:actual_curwin`?{{{
     "
     " The former can be used in an `%!` expression, the latter inside a `%{}` item.
@@ -774,11 +763,10 @@ fu statusline#tabpage_label(n) abort "{{{2
         let label = fnamemodify(bufname, ':t')
     endif
 
-    " Format the label so that it never exceeds 10 characters, and is centered.{{{
+    " Format the label so that it never exceeds `x` characters, and is centered.{{{
     "
     " This  is useful  to prevent  the tabline  from "dancing"  when we  focus a
-    " different window in the same tab page  (e.g. happens when you focus the qf
-    " window, or leave it).
+    " different window in the same tab page.
     "}}}
     " What about multibyte characters?{{{
     "
@@ -789,8 +777,8 @@ fu statusline#tabpage_label(n) abort "{{{2
     "
     " But I'm concerned about the impact on Vim's performance.
     " I don't know how often this function is evaluated.
-    " Anyway,  we will  rarely edit  files  with multibyte  characters in  their
-    " names...
+    " Anyway, we will rarely work on files or projects with multibyte characters
+    " in their names...
     "}}}
     let label = label[: s:TABLABEL_MAXSIZE - 1]
     let len = len(label)
