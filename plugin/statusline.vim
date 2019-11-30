@@ -3,55 +3,11 @@ if exists('g:loaded_statusline')
 endif
 let g:loaded_statusline = 1
 
-" TODO: Review how you set `'stl'` in special types of files.{{{
+" FAQ {{{1
+" What's the meaning of ...?{{{2
+" %<{{{3
 "
-"     " ~/.vim/plugged/vim-fex/ftplugin/fex.vim:41
-"         '%y %{fex#statusline#buffer()}%<%=%-'..winwidth(0)/8..'(%l/%L%) '
-"         '%y %{fex#statusline#buffer()}'
-"
-"     " ~/.vim/after/ftplugin/dirvish.vim:3
-"     '%y %F%<%=%-'..winwidth(0)/8..'(%l/%L%) '
-"     '%y %F'
-"
-"     " ~/.vim/plugged/vim-freekeys/after/ftplugin/freekeys.vim:1
-"         '%y%=%l/%L'
-"         '%y'
-"
-"     " ~/.vim/plugged/vim-qf/after/ftplugin/qf.vim:107
-"         '%{qf#statusline#buffer()}%=    %-'..winwidth(0)/8..'(%l/%L%) '
-"         '%{get(b:, "qf_is_loclist", 0) ? "[LL] ": "[QF] "}%=    %-'..winwidth(0)/8..'(%l/%L%) '
-"
-"     " ~/.vim/ftplugin/tmuxprompt.vim:13
-"     " ~/.vim/ftplugin/websearch.vim:13
-"     '%y%=%-'..winwidth(0)/8..'l'
-"     '%y'
-"
-"     " ~/.vim/plugin/undotree.vim:62
-"     '%h'
-"
-"     " ~/.vim/autoload/plugin/undotree.vim:132
-"     ' %l,%c%=%{&l:pvw ? "[pvw]" : ""} %p%% '
-"     '%=%{&l:pvw ? "[pvw]" : ""} %p%% '
-"
-" Make sure it's consistent.
-"
-" Also, try to consolidate similar settings in a single autocmd in the same file.
-" That is, if you notice that for most special types of files, you want/need the
-" same status line, write a single autocmd to set all of them.
-" It  would create  an easy  way  to add/remove  an `'stl'`  setting for  future
-" special types of files.
-"}}}
-" TODO: Check how your status lines react in a narrow window.{{{
-"
-" Use `%<` to control the truncation, and remove what's not important in such a case.
-"}}}
-
-" Doc {{{1
-" %<{{{2
-"
-" It means: "do *not* truncate what comes before".
-" If needed, Vim can truncate what comes after; and if it does, it truncates
-" the start of the text, not the end:
+" It means: "you can truncate what comes right after".
 "
 "     $ vim -Nu NONE +'set ls=2|set stl=abcdef%<ghijklmnopqrstuvwxyz' +'10vs'
 "     abcdef<xyz~
@@ -60,13 +16,43 @@ let g:loaded_statusline = 1
 " end. This is why `<`  was chosen for the item `%<` (and not  `>`), and this is
 " why `<` is positioned *before* the truncated text.
 "
-" However, if the text that comes before  `%<` is too long, Vim will have to
-" truncate it:
+" However, if  the text that  comes before  `%<` is too  long, Vim will  have to
+" truncate it too:
 "
-"     $ vim -Nu NONE +'set ls=2|set stl=abcdefghijklmn%<opqrstuvwxyz' +'10vs'
+"     $ vim -Nu NONE +'set ls=2 stl=abcdefghijklmn%<opqrstuvwxyz' +'10vs'
 "     abcdefghi>~
 "
-" Notice that this time, `>` is positioned *after* the truncated text.
+" Notice  that  this time,  it's  the  *end* of  the  *previous*  text which  is
+" truncated, and that `>` is positioned after it.
+"
+" To summarize:
+" `%<` describes a point from which Vim can truncate the text if needed.
+" It starts by truncating as much text as necessary right *after* the point.
+" If that's not enough, it goes on by truncating the text right *before* the point.
+"
+"     very long %< text
+"
+" If  "very long  text" is  too long  for  the status  line, Vim  will start  by
+" truncating the start of " text":
+"
+"     very long %< text
+"                 ---->
+"                 as much as necessary
+"
+" and if truncating all of " text"  is not enough, it will then truncate the end
+" of "very long ":
+"
+"     very long %< text
+"     <---------
+"     as much as necessary
+"
+" ---
+"
+" If you omit `%<`,  Vim assumes it's at the start, and  truncates from the very
+" beginning:
+"
+"     $ vim -Nu NONE +'set ls=2 stl=abcdefghijklmnopqrstuvwxyz' +'10vs'
+"     <rstuvwxyz~
 "
 " ---
 "
@@ -74,8 +60,10 @@ let g:loaded_statusline = 1
 "
 "    - `%<` outside `%{}`
 "    - `.123` inside `%{}` (e.g. `%.123{...}`)
+"
+" Note that `.123` truncates the start of the text, just like `%<`.
 
-" %(%) {{{2
+" %(%) {{{3
 "
 " Useful to set the desired width / justification of a group of items.
 "
@@ -100,7 +88,7 @@ let g:loaded_statusline = 1
 "
 " > ) - End of item group.    No width fields allowed.
 
-" -123  field {{{2
+" -123  field {{{3
 
 " Set the width of a field to 123 cells.
 "
@@ -120,7 +108,7 @@ let g:loaded_statusline = 1
 " space will be added; and the left-justifcation  will cause it to appear at the
 " end (instead of the beginning).
 
-" .123  field {{{2
+" .123  field {{{3
 "
 " Limit the width of an item to 123 cells:
 "
@@ -137,6 +125,18 @@ let g:loaded_statusline = 1
 "    - a '<' at the start for text items
 "    - a '>' at the end for numeric items (only `maxwid - 2` digits are kept)
 "      the number after '>' stands for how many digits are missing
+" How to set a flag in the tabpage scope?{{{2
+"
+" Like for any other scope:
+"
+"     au User MyFlags call statusline#hoist('tabpage', '[on]')
+"
+" However, if your flag depends on the tab page in which it's displayed, you may
+" need the placeholder `{tabnr}`. For example,  to include the number of windows
+" inside a tab page, you would write:
+"
+"     au User MyFlags call statusline#hoist('tabpage', '[%{tabpagewinnr({tabnr}, "$")}]')
+"                                                                       ^^^^^^^
 "}}}1
 
 " Init {{{1
@@ -165,9 +165,9 @@ set guioptions-=e
 
 set tabline=%!statusline#tabline()
 
-" TODO: Once `8.1.1372` has been ported to Nvim, remove all the `if !has('nvim')` guards,
+" TODO: Once `8.1.1372` has been ported to Nvim, remove all the `if ! has('nvim')` guards,
 " and when they contain an `else` block, remove the latter too.
-if !has('nvim')
+if ! has('nvim')
     set stl=%!statusline#main()
 endif
 
@@ -218,7 +218,7 @@ augroup my_statusline
 
     " How to make sure two consecutive flags A and B are visually well separated?{{{
     "
-    " If the length of A is fixed (e.g. 12):
+    " If the length of A is fixed (e.g. 12), and A is not highlighted:
     "
     "     %-13{item}
     "      ├─┘
@@ -231,6 +231,13 @@ augroup my_statusline
     "             ^
     "
     " But the space would be displayed unconditionally which you probably don't want.
+    "
+    " ---
+    "
+    " If the length of A is fixed, and A *is* highlighted, don't try to append a
+    " space; it would get highlighted which would be ugly.
+    "
+    " ---
     "
     " If  the length  of A  can  vary, highlight  it  with a  HG different  than
     " `StatusLine` so that it clearly stands out.
@@ -284,6 +291,12 @@ augroup my_statusline
     "
     " The goal is to prevent as much  as possible that a recently displayed flag
     " disturbs the positions of existing flags.
+    "
+    " ---
+    "
+    " Don't think about it too much. Tweak the priorities by experimentation.
+    " If  the display  of  A often  disturbs  the position  of  B, increase  A's
+    " priority so that it's greater than B's priority.
     "}}}
     " For the priorities, what type of numbers should I use?{{{
     "
@@ -294,9 +307,9 @@ augroup my_statusline
     "}}}
     " the lower the priority, the closer to the right end of the tab line the flag is
     au User MyFlags call statusline#hoist('global',
-        \ '%6{!exists("#auto_save_and_read") ? "[NAS]" : ""}', 10)
-    au User MyFlags call statusline#hoist('global', '%9{&ve is# "all" ? "[ve=all]" : ""}', 20)
-    au User MyFlags call statusline#hoist('global', '%16{&dip =~# "iwhiteall" ? "[dip~iwhiteall]" : ""}', 30)
+        \ '%-6{!exists("#auto_save_and_read") ? "[NAS]" : ""}', 10)
+    au User MyFlags call statusline#hoist('global', '%-9{&ve is# "all" ? "[ve=all]" : ""}', 20)
+    au User MyFlags call statusline#hoist('global', '%-16{&dip =~# "iwhiteall" ? "[dip~iwhiteall]" : ""}', 30)
     " Why an indicator for the 'paste' option?{{{
     "
     " Atm there's an issue  in Nvim, where `'paste'` may be  wrongly set when we
@@ -325,8 +338,8 @@ augroup my_statusline
         \ '%2*%{&mod && bufname("%") != "" && &bt !=# "terminal" ? "[+]" : ""}', 60)
 
     " the lower the priority, the closer to the right end of the status line the flag is
-    au User MyFlags call statusline#hoist('window', '%4p%% ', 10)
-    au User MyFlags call statusline#hoist('window', '%-8(%.5l,%.3v%)', 20)
+    au User MyFlags call statusline#hoist('window', '%5p%% ', 10)
+    au User MyFlags call statusline#hoist('window', '%.5l,%.3v', 20)
     au User MyFlags call statusline#hoist('window', '%-6{&l:pvw ? "[pvw]" : ""}', 30)
     au User MyFlags call statusline#hoist('window', '%-7{&l:diff ? "[diff]" : ""}', 40)
 
@@ -340,7 +353,7 @@ augroup my_statusline
     "}}}
     au OptionSet diffopt,paste,virtualedit redrawt
 
-    au CmdWinEnter * let &l:stl = '%=%-'..winwidth(0)/8..'l'
+    au CmdWinEnter * let &l:stl = ' %l'
 
     if has('nvim')
         " Which alternative to these autocmds could I use?{{{
@@ -436,7 +449,7 @@ fu s:build_flags() abort
 endfu
 
 " statusline {{{2
-if !has('nvim')
+if ! has('nvim')
     fu statusline#main() abort
         if g:statusline_winid != win_getid()
             let winnr = win_id2win(g:statusline_winid)
@@ -472,7 +485,7 @@ else
     "
     " This means that when you write the first expression:
     "
-    "     if !a:has_focus
+    "     if ! a:has_focus
     "         return 1st_expr
     "     endif
     "
@@ -488,7 +501,7 @@ else
     " This  explains  why you  can  test  `&ft` outside  a  `%{}`  item in  the  2nd
     " expression, but not in the first:
     "
-    "     if !has_focus
+    "     if ! has_focus
     "         ✘
     "         return '...'.(&bt is# 'quickfix' ? '...' : '')
     "     endif
@@ -498,7 +511,7 @@ else
     "     :...
     "
     "
-    "     if !has_focus
+    "     if ! has_focus
     "         ✔
     "         return '...%{&bt is# 'quickfix' ? "..." : ""}'
     "     endif
@@ -508,7 +521,7 @@ else
     "     :...
     "}}}
     fu statusline#main(has_focus) abort
-        if !a:has_focus
+        if ! a:has_focus
             return ' %1*%{statusline#tail_of_path()}%* '
                \ ..'%='
                \ ..'%-6{&l:pvw ? "[pvw]" : ""}'
@@ -524,8 +537,7 @@ endif
 
 fu statusline#tabline() abort "{{{2
     let s = ''
-    let curtab = tabpagenr()
-    let lasttab = tabpagenr('$')
+    let [curtab, lasttab] = [tabpagenr(), tabpagenr('$')]
     for i in range(1, lasttab)
         " color the label  of the current tab page with  the HG `TabLineSel` the
         " others with `TabLine`
@@ -539,10 +551,148 @@ fu statusline#tabline() abort "{{{2
         "}}}
         let s ..= '%'..i..'T'
 
+        " Shortest Distance From Ends
+        let sdfe = min([curtab - 1, lasttab - curtab])
+        " How did you get this expression?{{{
+        "
+        " We don't want to see a label for a tab page which is too far away:
+        "
+        "     if abs(curtab - a:n) > max_dist | return '' | endif
+        "                            ^^^^^^^^
+        "
+        " Now, suppose we  want to see 2 labels  on the left and right  of the label
+        " currently focused, but not more:
+        "
+        "     if abs(curtab - a:n) > 2 | return '' | endif
+        "                            ^
+        "
+        " If we're in the middle of a big enough tabline, it will look like this:
+        "
+        "       | | | a | a | A | a | a | | |
+        "                 │   │
+        "                 │   └ label currently focused
+        "                 └ some label
+        "
+        " Problem:
+        "
+        " Suppose we focus the last but two tab page, the tabline becomes:
+        "
+        "     | | | a | a | A | a | a
+        "
+        " Now suppose we focus the last but one tab page, the tabline becomes:
+        "
+        "     | | | | a | a | A | a
+        "
+        " Notice how the tabline  only contains 4 named labels, while  it had 5 just
+        " before.   We want  the tabline  to always  have the  same amount  of named
+        " labels, here 5:
+        "
+        "     | | | a | a | a | A | a
+        "           ^
+        "           to get this one we need `max_dist = 3`
+        "
+        " It appears that focusing the last but  one tab page is a special case, for
+        " which `max_dist` should be `3` and not `2`.
+        " Similarly, when we focus  the last tab page, we need  `max_dist` to be `4`
+        " and not `2`:
+        "
+        "     | | | a | a | a | a | A
+        "           ^   ^
+        "           to get those, we need `max_dist = 4`
+        "
+        " So, we need to add a number to `2`:
+        "
+        "    ┌──────────────────────────────────────────┬──────────┐
+        "    │              where is focus              │ max_dist │
+        "    ├──────────────────────────────────────────┼──────────┤
+        "    │ not on last nor on last but one tab page │ 2+0      │
+        "    ├──────────────────────────────────────────┼──────────┤
+        "    │ on last but one tab page                 │ 2+1      │
+        "    ├──────────────────────────────────────────┼──────────┤
+        "    │ on last tab page                         │ 2+2      │
+        "    └──────────────────────────────────────────┴──────────┘
+        "
+        " But what is the expression to get this number?
+        " Answer:
+        " We need to consider two cases depending on whether `lasttab - curtab >= 2`
+        " is true or false.
+        "
+        " If it's true, it  means that we're not near enough the  end of the tabline
+        " to worry; we are in the general case for which `max_dist = 2` is correct.
+        "
+        " If it's false, it means that we're too  close from the end, and we need to
+        " increase `max_dist`.
+        " By how much? The difference between the operands:
+        "
+        "     2 - (lasttab - curtab)
+        "
+        " The pseudo-code to get `max_dist` is thus:
+        "
+        "     if lasttab - curtab >= 2
+        "         max_dist = 2
+        "     else
+        "         max_dist = 2 + (2 - (lasttab - curtab))
+        "
+        " Now we also need to handle the case where we're too close from the *start*
+        " of the tabline:
+        "
+        "     if curtab - 1 >= 2
+        "         max_dist = 2
+        "     else
+        "         max_dist = 2 + (2 - (curtab - 1))
+        "
+        " Finally, we have to merge the two snippets:
+        "
+        "     sdfe = min([curtab - 1, lasttab - curtab])
+        "     if sdfe >= 2
+        "         max_dist = 2
+        "     else
+        "         max_dist = 2 + (2 - sdfe)
+        "
+        " Which  can be generalized to  an arbitrary number of  labels, by replacing
+        " `2` with a variable `x`:
+        "
+        "     sdfe = min([curtab - 1, lasttab - curtab])
+        "     if sdfe >= x
+        "         max_dist = x
+        "     else
+        "         max_dist = x + (x - sdfe)
+        "}}}
+        let max_dist = s:MAX_TABLABELS + (sdfe >= s:MAX_TABLABELS ? 0 : s:MAX_TABLABELS - sdfe)
+        " Alternative:{{{
+        " for 3 labels:{{{
+        "
+        "     let max_dist =
+        "     \   index([1, lasttab], curtab) != -1 ? 1+1
+        "     \ :                                     1+0
+        "}}}
+        " for 5 labels:{{{
+        "
+        "     let max_dist =
+        "     \   index([1, lasttab],   curtab) != -1 ? 2+2
+        "     \ : index([2, lasttab-1], curtab) != -1 ? 2+1
+        "     \ :                                       2+0
+        "}}}
+        " for 7 labels:{{{
+        "
+        "     let max_dist =
+        "     \   index([1, lasttab],   curtab) != -1 ? 3+3
+        "     \ : index([2, lasttab-1], curtab) != -1 ? 3+2
+        "     \ : index([3, lasttab-2], curtab) != -1 ? 3+1
+        "     \ :                                       3+0
+        "}}}
+        "}}}
+
         " set the label
-        let s ..= ' %{statusline#tabpage_label('..i..')} '
-            "\ append possible flag
-            \ ..s:flags.tabpage
+        if abs(curtab - i) > max_dist
+            let label = i
+        else
+            let label = ' %{statusline#tabpage_label('..i..','..curtab..')} '
+                "\ append possible flags
+                \ ..substitute(s:flags.tabpage, '\m\C{tabnr}', i, 'g')
+        endif
+
+        let s ..= label
             "\ append separator before the next label
             \ ..(i != lasttab ? '│' : '')
     endfor
@@ -592,143 +742,7 @@ endfu
 "    └─────────────────────────┴─────────────┘
 "}}}
 
-fu statusline#tabpage_label(n) abort "{{{2
-    let [curtab, lasttab] = [tabpagenr(), tabpagenr('$')]
-
-    " Shortest Distance From Ends
-    let sdfe = min([curtab - 1, lasttab - curtab])
-    " How did you get this expression?{{{
-    "
-    " We don't want to see a label for a tab page which is too far away:
-    "
-    "     if abs(curtab - a:n) > max_dist | return '' | endif
-    "                            ^^^^^^^^
-    "
-    " Now, suppose we  want to see 2 labels  on the left and right  of the label
-    " currently focused, but not more:
-    "
-    "     if abs(curtab - a:n) > 2 | return '' | endif
-    "                            ^
-    "
-    " If we're in the middle of a big enough tabline, it will look like this:
-    "
-    "       | | | a | a | A | a | a | | |
-    "                 │   │
-    "                 │   └ label currently focused
-    "                 └ some label
-    "
-    " Problem:
-    "
-    " Suppose we focus the last but two tab page, the tabline becomes:
-    "
-    "     | | | a | a | A | a | a
-    "
-    " Now suppose we focus the last but one tab page, the tabline becomes:
-    "
-    "     | | | | a | a | A | a
-    "
-    " Notice how the tabline  only contains 4 named labels, while  it had 5 just
-    " before.   We want  the tabline  to always  have the  same amount  of named
-    " labels, here 5:
-    "
-    "     | | | a | a | a | A | a
-    "           ^
-    "           to get this one we need `max_dist = 3`
-    "
-    " It appears that focusing the last but  one tab page is a special case, for
-    " which `max_dist` should be `3` and not `2`.
-    " Similarly, when we focus  the last tab page, we need  `max_dist` to be `4`
-    " and not `2`:
-    "
-    "     | | | a | a | a | a | A
-    "           ^   ^
-    "           to get those, we need `max_dist = 4`
-    "
-    " So, we need to add a number to `2`:
-    "
-    "    ┌──────────────────────────────────────────┬──────────┐
-    "    │              where is focus              │ max_dist │
-    "    ├──────────────────────────────────────────┼──────────┤
-    "    │ not on last nor on last but one tab page │ 2+0      │
-    "    ├──────────────────────────────────────────┼──────────┤
-    "    │ on last but one tab page                 │ 2+1      │
-    "    ├──────────────────────────────────────────┼──────────┤
-    "    │ on last tab page                         │ 2+2      │
-    "    └──────────────────────────────────────────┴──────────┘
-    "
-    " But what is the expression to get this number?
-    " Answer:
-    " We need to consider two cases depending on whether `lasttab - curtab >= 2`
-    " is true or false.
-    "
-    " If it's true, it  means that we're not near enough the  end of the tabline
-    " to worry; we are in the general case for which `max_dist = 2` is correct.
-    "
-    " If it's false, it means that we're too  close from the end, and we need to
-    " increase `max_dist`.
-    " By how much? The difference between the operands:
-    "
-    "     2 - (lasttab - curtab)
-    "
-    " The pseudo-code to get `max_dist` is thus:
-    "
-    "     if lasttab - curtab >= 2
-    "         max_dist = 2
-    "     else
-    "         max_dist = 2 + (2 - (lasttab - curtab))
-    "
-    " Now we also need to handle the case where we're too close from the *start*
-    " of the tabline:
-    "
-    "     if curtab - 1 >= 2
-    "         max_dist = 2
-    "     else
-    "         max_dist = 2 + (2 - (curtab - 1))
-    "
-    " Finally, we have to merge the two snippets:
-    "
-    "     sdfe = min([curtab - 1, lasttab - curtab])
-    "     if sdfe >= 2
-    "         max_dist = 2
-    "     else
-    "         max_dist = 2 + (2 - sdfe)
-    "
-    " Which  can be generalized to  an arbitrary number of  labels, by replacing
-    " `2` with a variable `x`:
-    "
-    "     sdfe = min([curtab - 1, lasttab - curtab])
-    "     if sdfe >= x
-    "         max_dist = x
-    "     else
-    "         max_dist = x + (x - sdfe)
-    "}}}
-    let max_dist = s:MAX_TABLABELS + (sdfe >= s:MAX_TABLABELS ? 0 : s:MAX_TABLABELS - sdfe)
-    " Alternative:{{{
-    " for 3 labels:{{{
-    "
-    "     let max_dist =
-    "     \   index([1, lasttab], curtab) != -1 ? 1+1
-    "     \ :                                     1+0
-    "}}}
-    " for 5 labels:{{{
-    "
-    "     let max_dist =
-    "     \   index([1, lasttab],   curtab) != -1 ? 2+2
-    "     \ : index([2, lasttab-1], curtab) != -1 ? 2+1
-    "     \ :                                       2+0
-    "}}}
-    " for 7 labels:{{{
-    "
-    "     let max_dist =
-    "     \   index([1, lasttab],   curtab) != -1 ? 3+3
-    "     \ : index([2, lasttab-1], curtab) != -1 ? 3+2
-    "     \ : index([3, lasttab-2], curtab) != -1 ? 3+1
-    "     \ :                                       3+0
-    "}}}
-    "}}}
-
-    if abs(curtab - a:n) > max_dist | return a:n | endif
-
+fu statusline#tabpage_label(n, curtab) abort "{{{2
     let winnr = tabpagewinnr(a:n)
     let bufnr = winbufnr(win_getid(winnr, a:n))
     let bufname = fnamemodify(bufname(bufnr), ':p')
@@ -752,7 +766,7 @@ fu statusline#tabpage_label(n) abort "{{{2
     " https://github.com/tpope/vim-flagship/issues/2#issuecomment-113824638
     "}}}
     " `b:root_dir` is set by `vim-cwd`
-    if a:n == curtab || getbufvar(bufnr, 'root_dir', '') isnot# ''
+    if a:n == a:curtab || getbufvar(bufnr, 'root_dir', '') isnot# ''
         let cwd = getcwd(winnr, a:n)
         let cwd = pathshorten(substitute(cwd, '^\V'..escape($HOME, '\')..'/', '', ''))
         " append a slash to avoid confusion with a buffer name
@@ -836,9 +850,8 @@ endfu
 "}}}
 
 fu statusline#fugitive() abort "{{{2
-    if !get(g:, 'my_fugitive_branch', 0)
+    if ! get(g:, 'my_fugitive_branch', 0)
         return ''
     endif
     return exists('*fugitive#statusline') ? fugitive#statusline() : ''
 endfu
-"}}}1
