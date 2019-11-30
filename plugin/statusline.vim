@@ -816,14 +816,7 @@ fu statusline#tabpage_label(n, curtab) abort "{{{2
         let label = fnamemodify(bufname, ':t')
     endif
 
-    " only add padding whitespace around the current tab label
-    if a:n != a:curtab | return label | endif
-
-    " Format the label so that it never exceeds `x` characters, and is centered.{{{
-    "
-    " This  is useful  to prevent  the tabline  from "dancing"  when we  focus a
-    " different window in the same tab page.
-    "}}}
+    " truncate the label so that it never exceeds our chosen maximum of characters
     " What about multibyte characters?{{{
     "
     " Yes, we should write sth like:
@@ -837,6 +830,12 @@ fu statusline#tabpage_label(n, curtab) abort "{{{2
     " in their names...
     "}}}
     let label = label[: s:TABLABEL_MAXSIZE - 1]
+    " Add padding whitespace around the current tab label.{{{
+    "
+    " This  is useful  to prevent  the tabline  from "dancing"  when we  focus a
+    " different window in the same tab page.
+    "}}}
+    if a:n != a:curtab | return label | endif
     let len = len(label)
     let cnt = (s:TABLABEL_MAXSIZE - len)/2
     return repeat(' ', cnt)..label..repeat(' ', cnt+len%2)
