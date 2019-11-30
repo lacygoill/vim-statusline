@@ -722,13 +722,14 @@ fu statusline#tabline() abort "{{{2
         if abs(curtab - i) > max_dist
             let label = i
         else
-            let flags = substitute(s:flags.tabpage, '\m\C{tabnr}', i, 'g')
             let label = ' %{statusline#tabpage_label('..i..','..curtab..')} '
-                "\ append possible flags
-                \ ..s:HG_TAL_FLAGS
-                \ ..flags
-                \ ..'%#TabLine#'
-                \ ..(flags isnot# '' && i != curtab ? ' ' : '')
+            let flags = substitute(s:flags.tabpage, '\m\C{tabnr}', i, 'g')
+            if flags isnot# ''
+                let label ..= s:HG_TAL_FLAGS
+                    \ ..flags
+                    \ ..'%#TabLine#'
+                    \ ..(i != curtab ? ' ' : '')
+            endif
         endif
 
         " append separator before the next label
@@ -814,6 +815,8 @@ fu statusline#tabpage_label(n, curtab) abort "{{{2
     else
         let label = fnamemodify(bufname, ':t')
     endif
+
+    " only add padding whitespace around the current tab label
     if a:n != a:curtab | return label | endif
 
     " Format the label so that it never exceeds `x` characters, and is centered.{{{
@@ -835,8 +838,7 @@ fu statusline#tabpage_label(n, curtab) abort "{{{2
     "}}}
     let label = label[: s:TABLABEL_MAXSIZE - 1]
     let len = len(label)
-    " `+4` to take into account a flag such as `[xy]`
-    let cnt = (s:TABLABEL_MAXSIZE - (len+4))/2
+    let cnt = (s:TABLABEL_MAXSIZE - len)/2
     return repeat(' ', cnt)..label..repeat(' ', cnt+len%2)
 endfu
 
