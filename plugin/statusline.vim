@@ -132,11 +132,23 @@ let g:loaded_statusline = 1
 "     au User MyFlags call statusline#hoist('tabpage', '[on]')
 "
 " However, if your flag depends on the tab page in which it's displayed, you may
-" need the placeholder `{tabnr}`. For example,  to include the number of windows
-" inside a tab page, you would write:
+" need the special placeholder `{tabnr}`. For  example, to include the number of
+" windows inside a tab page, you would write:
 "
 "     au User MyFlags call statusline#hoist('tabpage', '[%{tabpagewinnr({tabnr}, "$")}]')
 "                                                                       ^^^^^^^
+"
+" If your expression  is too complex to  fit directly in the  function call, and
+" you  need to  compute the  flag via  another function,  make sure  to pass  it
+" `{tabnr}` as an argument:
+"                                                            vvvvvvv
+"     au User MyFlags call statusline#hoist('tabpage', 'Func({tabnr})')
+"     fu Func(tabnr)
+"             ^^^^^
+"         " compute the flag using `a:tabnr` to refer to the tab page number
+"                                   ^^^^^^^
+"         return '...'
+"     endfu
 "}}}1
 
 " Init {{{1
@@ -148,7 +160,7 @@ const s:TABLABEL_MAXSIZE = 20
 const s:MAX_TABLABELS = 1
 
 " HG to use to highlight the flags in the tab line
-const s:HG_TAL_FLAGS = 'StatusLineTermNC'
+const s:HG_TAL_FLAGS = '%#StatusLineTermNC#'
 
 const s:SCOPES = ['global', 'tabpage', 'buffer', 'window']
 let s:flags_db = {'global': [], 'tabpage': [], 'buffer': [], 'window': []}
@@ -188,6 +200,24 @@ fu s:display_flags(scope) abort
         let lines += map(deepcopy(s:flags_db[scope]),
             \ {_,v -> substitute(v.flag, '\s\+$', '\=repeat("█", len(submatch(0)))', '') .."\x01".. v.priority})
         " `substitute()` makes visible a trailing whitespace in a flag
+
+        " Purpose:{{{
+        "
+        " If there is one flag, and only one flag in a given scope, the flags in
+        " the subsequent scopes will not be formatted correctly.
+        " This is because the ranges in  our next global commands work under the
+        " assumption that a scope always contains several flags.
+        "
+        " To fix this issue, we temporarily add a dummy flag.
+        "
+        " ---
+        "
+        " Our  global  commands still  give  the  desired  result when  a  scope
+        " contains no flag.
+        "}}}
+        if len(s:flags_db[scope]) == 1
+            let lines += ['dummy flag 123']
+        endif
     endfor
     exe 'pedit '..tempname()
     wincmd P
@@ -196,12 +226,15 @@ fu s:display_flags(scope) abort
     call append(0, lines)
     let range = '/^---//\d\+$/ ; /\d\+$//^\s*$\|\%$/-'
     " align priorities in a column
-    sil! keepj keepp g/^---/exe range.."!column -t -s\x01"
+    sil keepj keepp g/^---/exe range.."!column -t -s\x01"
     " for each scope, sort the flags according to their priority
     sil! keepj keepp g/^---/exe range..'sort /.\{-}\ze\d\+$/ n'
     "  │
     "  └ in case the scope does not contain any flag
+    sil keepj keepp g/dummy flag 123/d_
     1d_
+    " highlight flags installed from third-party plugins
+    call matchadd('DiffAdd', '.*[1-9]$')
     nmap <buffer><nowait><silent> q <plug>(my_quit)
 endfu
 
@@ -307,9 +340,9 @@ augroup my_statusline
     "}}}
     " the lower the priority, the closer to the right end of the tab line the flag is
     au User MyFlags call statusline#hoist('global',
-        \ '%-6{!exists("#auto_save_and_read") ? "[NAS]" : ""}', 10)
-    au User MyFlags call statusline#hoist('global', '%-9{&ve is# "all" ? "[ve=all]" : ""}', 20)
-    au User MyFlags call statusline#hoist('global', '%-16{&dip =~# "iwhiteall" ? "[dip~iwhiteall]" : ""}', 30)
+        \ '%{!exists("#auto_save_and_read") ? "[NAS]" : ""}', 10)
+    au User MyFlags call statusline#hoist('global', '%{&ve is# "all" ? "[ve=all]" : ""}', 20)
+    au User MyFlags call statusline#hoist('global', '%{&dip =~# "iwhiteall" ? "[dip~iwa]" : ""}', 30)
     " Why an indicator for the 'paste' option?{{{
     "
     " Atm there's an issue  in Nvim, where `'paste'` may be  wrongly set when we
@@ -331,17 +364,19 @@ augroup my_statusline
     "}}}
     au User MyFlags call statusline#hoist('buffer', '%a', 10)
     au User MyFlags call statusline#hoist('buffer', ' %1*%{statusline#tail_of_path()}%* ', 20)
-    au User MyFlags call statusline#hoist('buffer', '%-5r', 30)
+    au User MyFlags call statusline#hoist('buffer', '%r', 30)
     au User MyFlags call statusline#hoist('buffer', '%{statusline#fugitive()}', 40)
-    au User MyFlags call statusline#hoist('buffer', '%-6{exists("b:auto_open_fold_mappings") ? "[AOF]" : ""}', 50)
+    au User MyFlags call statusline#hoist('buffer', '%{exists("b:auto_open_fold_mappings") ? "[AOF]" : ""}', 50)
     au User MyFlags call statusline#hoist('buffer',
         \ '%2*%{&mod && bufname("%") != "" && &bt !=# "terminal" ? "[+]" : ""}', 60)
 
     " the lower the priority, the closer to the right end of the status line the flag is
     au User MyFlags call statusline#hoist('window', '%5p%% ', 10)
-    au User MyFlags call statusline#hoist('window', '%.5l,%.3v', 20)
-    au User MyFlags call statusline#hoist('window', '%-6{&l:pvw ? "[pvw]" : ""}', 30)
-    au User MyFlags call statusline#hoist('window', '%-7{&l:diff ? "[diff]" : ""}', 40)
+    au User MyFlags call statusline#hoist('window', '%9(%.5l,%.3v%)', 20)
+    au User MyFlags call statusline#hoist('window', '%{&l:pvw ? "[pvw]" : ""}', 30)
+    au User MyFlags call statusline#hoist('window', '%{&l:diff ? "[diff]" : ""}', 40)
+
+    au User MyFlags call statusline#hoist('tabpage', '%{statusline#tabpagewinnr({tabnr})}', 10)
 
     " Purpose:{{{
     "
@@ -425,7 +460,7 @@ fu statusline#hoist(scope, flag, ...) abort "{{{2
     let pat = '^%[1-9]\*\|^%#[^#]\+#'
     if (a:scope is# 'global' || a:scope is# 'window') && flag =~# pat
         " if a flag is highlighted, restore normal highlight
-        let flag ..= '%#'..s:HG_TAL_FLAGS..'#'
+        let flag ..= s:HG_TAL_FLAGS
     elseif (a:scope is# 'buffer' || a:scope is# 'tabpage') && flag =~# pat
         let flag ..= '%*'
     endif
@@ -687,21 +722,24 @@ fu statusline#tabline() abort "{{{2
         if abs(curtab - i) > max_dist
             let label = i
         else
+            let flags = substitute(s:flags.tabpage, '\m\C{tabnr}', i, 'g')
             let label = ' %{statusline#tabpage_label('..i..','..curtab..')} '
                 "\ append possible flags
-                \ ..substitute(s:flags.tabpage, '\m\C{tabnr}', i, 'g')
+                \ ..s:HG_TAL_FLAGS
+                \ ..flags
+                \ ..'%#TabLine#'
+                \ ..(flags isnot# '' && i != curtab ? ' ' : '')
         endif
 
-        let s ..= label
-            "\ append separator before the next label
-            \ ..(i != lasttab ? '│' : '')
+        " append separator before the next label
+        let s ..= label..'│'
     endfor
 
     " color the rest of the line with `TabLineFill` (until the flags), and reset tab page nr (`%T`)
     let s ..= '%#TabLineFill#%T'
 
     " append global flags on the right of the tab line
-    let s ..= '%=%#'..s:HG_TAL_FLAGS..'#'..s:flags.global
+    let s ..= '%='..s:HG_TAL_FLAGS..s:flags.global
 
     " If you want to get a closing label, try this:{{{
     "
@@ -776,6 +814,7 @@ fu statusline#tabpage_label(n, curtab) abort "{{{2
     else
         let label = fnamemodify(bufname, ':t')
     endif
+    if a:n != a:curtab | return label | endif
 
     " Format the label so that it never exceeds `x` characters, and is centered.{{{
     "
@@ -796,8 +835,20 @@ fu statusline#tabpage_label(n, curtab) abort "{{{2
     "}}}
     let label = label[: s:TABLABEL_MAXSIZE - 1]
     let len = len(label)
-    let cnt = (s:TABLABEL_MAXSIZE - len)/2
+    " `+4` to take into account a flag such as `[xy]`
+    let cnt = (s:TABLABEL_MAXSIZE - (len+4))/2
     return repeat(' ', cnt)..label..repeat(' ', cnt+len%2)
+endfu
+
+fu statusline#tabpagewinnr(tabnr) abort "{{{2
+    " return the number of windows inside the tab page `a:tabnr`
+    let last_winnr = tabpagewinnr(a:tabnr, '$')
+    " We are not interested in the number of windows inside:{{{
+    "
+    "    - the current tab page
+    "    - another tab page if it only contains 1 window
+    "}}}
+    return tabpagenr() == a:tabnr || last_winnr == 1 ? '' : '['..last_winnr..']'
 endfu
 
 fu statusline#tail_of_path() abort "{{{2
