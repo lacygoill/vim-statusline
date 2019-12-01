@@ -376,6 +376,15 @@ augroup my_statusline
     au User MyFlags call statusline#hoist('window', '%{&l:pvw ? "[pvw]" : ""}', 30)
     au User MyFlags call statusline#hoist('window', '%{&l:diff ? "[diff]" : ""}', 40)
 
+    " TODO: Add a tabpage flag to show whether the focused project is dirty?{{{
+    "
+    " I.e. the project contains non-commited changes.
+    "
+    " If you  try to implement this  flag, cache the  state of the project  in a
+    " buffer variable.
+    " But when  would we update  the cache?   Running an external  shell command
+    " (here `git(1)`) is costly...
+    "}}}
     au User MyFlags call statusline#hoist('tabpage', '%{statusline#tabpagewinnr({tabnr})}', 10)
 
     " Purpose:{{{
@@ -732,7 +741,6 @@ fu statusline#tabline() abort "{{{2
             endif
         endif
 
-        " append separator before the next label
         let s ..= label..'│'
     endfor
 
@@ -784,28 +792,25 @@ endfu
 fu statusline#tabpage_label(n, curtab) abort "{{{2
     let winnr = tabpagewinnr(a:n)
     let bufnr = winbufnr(win_getid(winnr, a:n))
-    let bufname = fnamemodify(bufname(bufnr), ':p')
+    let bufname = bufname(bufnr)
+    if bufname isnot# ''
+        let bufname = fnamemodify(bufname, ':p')
+    endif
 
     " Display the cwd iff:{{{
     "
-    "    - the label is for the current tab page
+    "    - the buffer has a name
     "
-    "      In that case, we don't care about the name of the current file:
+    "    - the file is in a version-controlled project,
+    "      or the label is for the current tab page
+    "
+    "      In the latter case, we don't care about the name of the current file:
     "
     "        - it's already in the status line
     "        - it's complete in the status line
-    "
-    "    - the file is in a version-controlled project
-    "
-    "}}}
-    " I'm not satisfied with the labels!{{{
-    "
-    " Have a look at this for more inspiration:
-    "
-    " https://github.com/tpope/vim-flagship/issues/2#issuecomment-113824638
     "}}}
     " `b:root_dir` is set by `vim-cwd`
-    if a:n == a:curtab || getbufvar(bufnr, 'root_dir', '') isnot# ''
+    if bufname isnot# '' && (a:n == a:curtab || getbufvar(bufnr, 'root_dir', '') isnot# '')
         let cwd = getcwd(winnr, a:n)
         let cwd = pathshorten(substitute(cwd, '^\V'..escape($HOME, '\')..'/', '', ''))
         " append a slash to avoid confusion with a buffer name
@@ -815,6 +820,12 @@ fu statusline#tabpage_label(n, curtab) abort "{{{2
     else
         let label = fnamemodify(bufname, ':t')
     endif
+    " I'm not satisfied with the labels!{{{
+    "
+    " Have a look at this for more inspiration:
+    "
+    " https://github.com/tpope/vim-flagship/issues/2#issuecomment-113824638
+    "}}}
 
     " truncate the label so that it never exceeds our chosen maximum of characters
     " What about multibyte characters?{{{
