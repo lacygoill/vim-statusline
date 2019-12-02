@@ -339,10 +339,8 @@ augroup my_statusline
     " multiples of 10.
     "}}}
     " the lower the priority, the closer to the right end of the tab line the flag is
-    au User MyFlags call statusline#hoist('global',
-        \ '%{!exists("#auto_save_and_read") ? "[NAS]" : ""}', 10)
-    au User MyFlags call statusline#hoist('global', '%{&ve is# "all" ? "[ve=all]" : ""}', 20)
-    au User MyFlags call statusline#hoist('global', '%{&dip =~# "iwhiteall" ? "[dip~iwa]" : ""}', 30)
+    au User MyFlags call statusline#hoist('global', '%{&ve is# "all" ? "[ve=all]" : ""}', 10)
+    au User MyFlags call statusline#hoist('global', '%{&dip =~# "iwhiteall" ? "[dip~iwa]" : ""}', 20)
     " Why an indicator for the 'paste' option?{{{
     "
     " Atm there's an issue  in Nvim, where `'paste'` may be  wrongly set when we
@@ -352,7 +350,7 @@ augroup my_statusline
     " Anyway, this is  an option which has too many  effects; we need to
     " be informed immediately whenever it's set.
     "}}}
-    au User MyFlags call statusline#hoist('global', '%2*%{&paste ? "[paste]" : ""}', 40)
+    au User MyFlags call statusline#hoist('global', '%2*%{&paste ? "[paste]" : ""}', 30)
 
     " the lower the priority, the closer to the left end of the status line the flag is
     " Why the arglist at the very start?{{{
@@ -366,9 +364,8 @@ augroup my_statusline
     au User MyFlags call statusline#hoist('buffer', ' %1*%{statusline#tail_of_path()}%* ', 20)
     au User MyFlags call statusline#hoist('buffer', '%r', 30)
     au User MyFlags call statusline#hoist('buffer', '%{statusline#fugitive()}', 40)
-    au User MyFlags call statusline#hoist('buffer', '%{exists("b:auto_open_fold_mappings") ? "[AOF]" : ""}', 50)
     au User MyFlags call statusline#hoist('buffer',
-        \ '%2*%{&mod && bufname("%") != "" && &bt !=# "terminal" ? "[+]" : ""}', 60)
+        \ '%2*%{&mod && bufname("%") != "" && &bt !=# "terminal" ? "[+]" : ""}', 50)
 
     " the lower the priority, the closer to the right end of the status line the flag is
     au User MyFlags call statusline#hoist('window', '%5p%% ', 10)
