@@ -387,12 +387,20 @@ augroup my_statusline
     " Purpose:{{{
     "
     " We use the tab  line to display some flags telling  us whether some global
-    " options are set.
+    " options are set; among them is `'paste'`
     " For some reason, the tab line is not automatically redrawn when we (re)set
-    " an option (contrary to the status  line). We want to be informed *as soon*
-    " *as* these options are (re)set.
+    " an option (contrary to the status line).
+    " We want  to be informed *as  soon* *as* `'paste'` (and  possibly others in
+    " the future) is (re)set.
     "}}}
-    au OptionSet diffopt,paste,virtualedit redrawt
+    " Do *not* include `virtualedit` in the pattern.{{{
+    "
+    " Sometimes, when we expand a diagram via `vim-breakdown`, the flag would be
+    " briefly displayed in the tab line.
+    " Note that if we  moved the `[ve=all]` flag in the  buffer scope, the issue
+    " would never be triggered.
+    "}}}
+    au OptionSet paste redrawt
 
     au CmdWinEnter * let &l:stl = ' %l'
 
