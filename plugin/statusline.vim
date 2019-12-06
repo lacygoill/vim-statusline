@@ -426,8 +426,9 @@ augroup my_statusline
     "     noa set ve=all
     "     ^^^
     "
-    " If you  can't, consider  asking the  tab line to  be redrawn  whenever the
-    " status line is, or whenever an option is (re)set.
+    " If you can't (because the option is set in a third-party plugin), consider
+    " asking the tab line to be redrawn whenever the status line is, or whenever
+    " a global option is (re)set.
     " Open a new github issue, or leave a comment on issue #3770.
     " Try to include a good and simple MWE to convince the devs that it would be
     " a worthy change.
