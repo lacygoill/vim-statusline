@@ -393,14 +393,7 @@ augroup my_statusline
     " We want  to be informed *as  soon* *as* `'paste'` (and  possibly others in
     " the future) is (re)set.
     "}}}
-    " Do *not* include `virtualedit` in the pattern.{{{
-    "
-    " Sometimes, when we expand a diagram via `vim-breakdown`, the flag would be
-    " briefly displayed in the tab line.
-    " Note that if we  moved the `[ve=all]` flag in the  buffer scope, the issue
-    " would never be triggered.
-    "}}}
-    au OptionSet paste redrawt
+    au OptionSet diffopt,paste,virtualedit redrawt
 
     au CmdWinEnter * let &l:stl = ' %l'
 
