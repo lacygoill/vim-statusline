@@ -427,8 +427,8 @@ augroup my_statusline
     "     ^^^
     "
     " If you  can't, consider  asking the  tab line to  be redrawn  whenever the
-    " status  line is. Open  a new  github issue,  or leave  a comment  on issue
-    " #3770.
+    " status line is, or whenever an option is (re)set.
+    " Open a new github issue, or leave a comment on issue #3770.
     " Try to include a good and simple MWE to convince the devs that it would be
     " a worthy change.
     "}}}
