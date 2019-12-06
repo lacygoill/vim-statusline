@@ -388,10 +388,49 @@ augroup my_statusline
     "
     " We use the tab  line to display some flags telling  us whether some global
     " options are set; among them is `'paste'`
-    " For some reason, the tab line is not automatically redrawn when we (re)set
-    " an option (contrary to the status line).
+    " But the  tab line is not  automatically redrawn when we  (re)set an option
+    " (contrary to the status line).
     " We want  to be informed *as  soon* *as* `'paste'` (and  possibly others in
     " the future) is (re)set.
+    "
+    " ---
+    "
+    " We would not  need this autocmd if  the tab line was  redrawn whenever the
+    " status line is; which has been discussed in the past:
+    "
+    " > My suggestion  (if it  isn't too  expansive) was  to always  refresh the
+    " > tabline, if the statusline is also refreshed. That seems consistent.
+    "
+    " Source: https://github.com/vim/vim/issues/3770#issuecomment-451972003
+    "
+    " But it has not been implemented for various reasons:
+    "
+    " > We  could  either also  update  the  tabline,  or add  a  :redrawtabline
+    " > command.   The last  would  be more  logical, since  it  depends on  the
+    " > 'tabline' option and has nothing to do with what's in 'statusline'.
+    "
+    " Source: https://github.com/vim/vim/issues/3770#issuecomment-452082906
+    " See also: https://github.com/vim/vim/issues/3770#issuecomment-452095497
+    "}}}
+    " A flag for one of these options is briefly displayed in the tab line when I use a custom mapping/command!{{{
+    "
+    " Maybe the mapping/command temporarily changes  the value of the option for
+    " which a flag is displayed.
+    " For example, when  we press `m]` to expand a  diagram via `vim-breakdown`,
+    " `'ve'` is temporarily set to `all`:
+    "
+    "     set ve=all
+    "
+    " If you can, prefix `:set` with `:noa`:
+    "
+    "     noa set ve=all
+    "     ^^^
+    "
+    " If you  can't, consider  asking the  tab line to  be redrawn  whenever the
+    " status  line is. Open  a new  github issue,  or leave  a comment  on issue
+    " #3770.
+    " Try to include a good and simple MWE to convince the devs that it would be
+    " a worthy change.
     "}}}
     au OptionSet diffopt,paste,virtualedit redrawt
 
