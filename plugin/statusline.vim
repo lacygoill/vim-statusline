@@ -620,6 +620,139 @@ endif
 fu statusline#tabline() abort "{{{2
     let s = ''
     let [curtab, lasttab] = [tabpagenr(), tabpagenr('$')]
+
+    " Shortest Distance From Ends
+    let sdfe = min([curtab - 1, lasttab - curtab])
+    " How did you get this expression?{{{
+    "
+    " We don't want to see a label for a tab page which is too far away:
+    "
+    "     if abs(curtab - a:n) > max_dist | return '' | endif
+    "                            ^^^^^^^^
+    "
+    " Now, suppose we  want to see 2 labels  on the left and right  of the label
+    " currently focused, but not more:
+    "
+    "     if abs(curtab - a:n) > 2 | return '' | endif
+    "                            ^
+    "
+    " If we're in the middle of a big enough tabline, it will look like this:
+    "
+    "       | | | a | a | A | a | a | | |
+    "                 │   │
+    "                 │   └ label currently focused
+    "                 └ some label
+    "
+    " Problem:
+    "
+    " Suppose we focus the last but two tab page, the tabline becomes:
+    "
+    "     | | | a | a | A | a | a
+    "
+    " Now suppose we focus the last but one tab page, the tabline becomes:
+    "
+    "     | | | | a | a | A | a
+    "
+    " Notice how the tabline  only contains 4 named labels, while  it had 5 just
+    " before.   We want  the tabline  to always  have the  same amount  of named
+    " labels, here 5:
+    "
+    "     | | | a | a | a | A | a
+    "           ^
+    "           to get this one we need `max_dist = 3`
+    "
+    " It appears that focusing the last but  one tab page is a special case, for
+    " which `max_dist` should be `3` and not `2`.
+    " Similarly, when we focus  the last tab page, we need  `max_dist` to be `4`
+    " and not `2`:
+    "
+    "     | | | a | a | a | a | A
+    "           ^   ^
+    "           to get those, we need `max_dist = 4`
+    "
+    " So, we need to add a number to `2`:
+    "
+    "    ┌──────────────────────────────────────────┬──────────┐
+    "    │              where is focus              │ max_dist │
+    "    ├──────────────────────────────────────────┼──────────┤
+    "    │ not on last nor on last but one tab page │ 2+0      │
+    "    ├──────────────────────────────────────────┼──────────┤
+    "    │ on last but one tab page                 │ 2+1      │
+    "    ├──────────────────────────────────────────┼──────────┤
+    "    │ on last tab page                         │ 2+2      │
+    "    └──────────────────────────────────────────┴──────────┘
+    "
+    " But what is the expression to get this number?
+    " Answer:
+    " We need to consider two cases depending on whether `lasttab - curtab >= 2`
+    " is true or false.
+    "
+    " If it's true, it  means that we're not near enough the  end of the tabline
+    " to worry; we are in the general case for which `max_dist = 2` is correct.
+    "
+    " If it's false, it means that we're too  close from the end, and we need to
+    " increase `max_dist`.
+    " By how much? The difference between the operands:
+    "
+    "     2 - (lasttab - curtab)
+    "
+    " The pseudo-code to get `max_dist` is thus:
+    "
+    "     if lasttab - curtab >= 2
+    "         max_dist = 2
+    "     else
+    "         max_dist = 2 + (2 - (lasttab - curtab))
+    "
+    " Now we also need to handle the case where we're too close from the *start*
+    " of the tabline:
+    "
+    "     if curtab - 1 >= 2
+    "         max_dist = 2
+    "     else
+    "         max_dist = 2 + (2 - (curtab - 1))
+    "
+    " Finally, we have to merge the two snippets:
+    "
+    "     sdfe = min([curtab - 1, lasttab - curtab])
+    "     if sdfe >= 2
+    "         max_dist = 2
+    "     else
+    "         max_dist = 2 + (2 - sdfe)
+    "
+    " Which  can be generalized to  an arbitrary number of  labels, by replacing
+    " `2` with a variable `x`:
+    "
+    "     sdfe = min([curtab - 1, lasttab - curtab])
+    "     if sdfe >= x
+    "         max_dist = x
+    "     else
+    "         max_dist = x + (x - sdfe)
+    "}}}
+    let max_dist = s:MAX_TABLABELS + (sdfe >= s:MAX_TABLABELS ? 0 : s:MAX_TABLABELS - sdfe)
+    " Alternative:{{{
+    " for 3 labels:{{{
+    "
+    "     let max_dist =
+    "     \   index([1, lasttab], curtab) != -1 ? 1+1
+    "     \ :                                     1+0
+    "}}}
+    " for 5 labels:{{{
+    "
+    "     let max_dist =
+    "     \   index([1, lasttab],   curtab) != -1 ? 2+2
+    "     \ : index([2, lasttab-1], curtab) != -1 ? 2+1
+    "     \ :                                       2+0
+    "}}}
+    " for 7 labels:{{{
+    "
+    "     let max_dist =
+    "     \   index([1, lasttab],   curtab) != -1 ? 3+3
+    "     \ : index([2, lasttab-1], curtab) != -1 ? 3+2
+    "     \ : index([3, lasttab-2], curtab) != -1 ? 3+1
+    "     \ :                                       3+0
+    "}}}
+    "}}}
+
     for i in range(1, lasttab)
         " color the label  of the current tab page with  the HG `TabLineSel` the
         " others with `TabLine`
@@ -632,138 +765,6 @@ fu statusline#tabline() abort "{{{2
         " used in `'tal'` which will increase the limit.
         "}}}
         let s ..= '%'..i..'T'
-
-        " Shortest Distance From Ends
-        let sdfe = min([curtab - 1, lasttab - curtab])
-        " How did you get this expression?{{{
-        "
-        " We don't want to see a label for a tab page which is too far away:
-        "
-        "     if abs(curtab - a:n) > max_dist | return '' | endif
-        "                            ^^^^^^^^
-        "
-        " Now, suppose we  want to see 2 labels  on the left and right  of the label
-        " currently focused, but not more:
-        "
-        "     if abs(curtab - a:n) > 2 | return '' | endif
-        "                            ^
-        "
-        " If we're in the middle of a big enough tabline, it will look like this:
-        "
-        "       | | | a | a | A | a | a | | |
-        "                 │   │
-        "                 │   └ label currently focused
-        "                 └ some label
-        "
-        " Problem:
-        "
-        " Suppose we focus the last but two tab page, the tabline becomes:
-        "
-        "     | | | a | a | A | a | a
-        "
-        " Now suppose we focus the last but one tab page, the tabline becomes:
-        "
-        "     | | | | a | a | A | a
-        "
-        " Notice how the tabline  only contains 4 named labels, while  it had 5 just
-        " before.   We want  the tabline  to always  have the  same amount  of named
-        " labels, here 5:
-        "
-        "     | | | a | a | a | A | a
-        "           ^
-        "           to get this one we need `max_dist = 3`
-        "
-        " It appears that focusing the last but  one tab page is a special case, for
-        " which `max_dist` should be `3` and not `2`.
-        " Similarly, when we focus  the last tab page, we need  `max_dist` to be `4`
-        " and not `2`:
-        "
-        "     | | | a | a | a | a | A
-        "           ^   ^
-        "           to get those, we need `max_dist = 4`
-        "
-        " So, we need to add a number to `2`:
-        "
-        "    ┌──────────────────────────────────────────┬──────────┐
-        "    │              where is focus              │ max_dist │
-        "    ├──────────────────────────────────────────┼──────────┤
-        "    │ not on last nor on last but one tab page │ 2+0      │
-        "    ├──────────────────────────────────────────┼──────────┤
-        "    │ on last but one tab page                 │ 2+1      │
-        "    ├──────────────────────────────────────────┼──────────┤
-        "    │ on last tab page                         │ 2+2      │
-        "    └──────────────────────────────────────────┴──────────┘
-        "
-        " But what is the expression to get this number?
-        " Answer:
-        " We need to consider two cases depending on whether `lasttab - curtab >= 2`
-        " is true or false.
-        "
-        " If it's true, it  means that we're not near enough the  end of the tabline
-        " to worry; we are in the general case for which `max_dist = 2` is correct.
-        "
-        " If it's false, it means that we're too  close from the end, and we need to
-        " increase `max_dist`.
-        " By how much? The difference between the operands:
-        "
-        "     2 - (lasttab - curtab)
-        "
-        " The pseudo-code to get `max_dist` is thus:
-        "
-        "     if lasttab - curtab >= 2
-        "         max_dist = 2
-        "     else
-        "         max_dist = 2 + (2 - (lasttab - curtab))
-        "
-        " Now we also need to handle the case where we're too close from the *start*
-        " of the tabline:
-        "
-        "     if curtab - 1 >= 2
-        "         max_dist = 2
-        "     else
-        "         max_dist = 2 + (2 - (curtab - 1))
-        "
-        " Finally, we have to merge the two snippets:
-        "
-        "     sdfe = min([curtab - 1, lasttab - curtab])
-        "     if sdfe >= 2
-        "         max_dist = 2
-        "     else
-        "         max_dist = 2 + (2 - sdfe)
-        "
-        " Which  can be generalized to  an arbitrary number of  labels, by replacing
-        " `2` with a variable `x`:
-        "
-        "     sdfe = min([curtab - 1, lasttab - curtab])
-        "     if sdfe >= x
-        "         max_dist = x
-        "     else
-        "         max_dist = x + (x - sdfe)
-        "}}}
-        let max_dist = s:MAX_TABLABELS + (sdfe >= s:MAX_TABLABELS ? 0 : s:MAX_TABLABELS - sdfe)
-        " Alternative:{{{
-        " for 3 labels:{{{
-        "
-        "     let max_dist =
-        "     \   index([1, lasttab], curtab) != -1 ? 1+1
-        "     \ :                                     1+0
-        "}}}
-        " for 5 labels:{{{
-        "
-        "     let max_dist =
-        "     \   index([1, lasttab],   curtab) != -1 ? 2+2
-        "     \ : index([2, lasttab-1], curtab) != -1 ? 2+1
-        "     \ :                                       2+0
-        "}}}
-        " for 7 labels:{{{
-        "
-        "     let max_dist =
-        "     \   index([1, lasttab],   curtab) != -1 ? 3+3
-        "     \ : index([2, lasttab-1], curtab) != -1 ? 3+2
-        "     \ : index([3, lasttab-2], curtab) != -1 ? 3+1
-        "     \ :                                       3+0
-        "}}}
-        "}}}
 
         " set the label
         if abs(curtab - i) > max_dist
