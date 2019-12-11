@@ -125,6 +125,63 @@ let g:loaded_statusline = 1
 "    - a '<' at the start for text items
 "    - a '>' at the end for numeric items (only `maxwid - 2` digits are kept)
 "      the number after '>' stands for how many digits are missing
+"}}}2
+" What's the difference between `g:statusline_winid` and `g:actual_curwin`?{{{2
+"
+" The former can be used in an `%!` expression, the latter inside a `%{}` item.
+" Note that, inside a `%{}` expression:
+"
+"     g:actual_curwin == win_getid()
+"
+" So, it's only useful to avoid the  overhead created by the invocation of a
+" Vimscript function.
+
+" How to make sure two consecutive flags A and B are visually well separated?{{{2
+"
+" If the length of A is fixed (e.g. 12), and A is not highlighted:
+"
+"     %-13{item}
+"      ├─┘
+"      └ make the length of the flag one cell longer than the text it displays
+"        and left-align it
+"
+" You could also append a space manually:
+"
+"     '%{item} '
+"             ^
+"
+" But the space would be displayed unconditionally which you probably don't want.
+"
+" ---
+"
+" If the length of A is fixed, and A *is* highlighted, don't try to append a
+" space; it would get highlighted which would be ugly.
+"
+" ---
+"
+" If  the length  of A  can  vary, highlight  it  with a  HG different  than
+" `StatusLine` so that it clearly stands out.
+
+" What are the "buffer", "window", "tabpage" and "global" scopes?{{{2
+"
+" A flag may give an information about:
+"
+"    - a buffer; we say it's in the *buffer scope*
+"    - a window; we say it's in the *window scope*
+"    - all buffers in a tabpage; we say it's in the *tabpage scope*
+"    - some setting which applies to all buffers/windows/tabpages; we say it's in the *global scope*
+"
+" By convention, we display a flag in:
+"
+"    - the buffer scope, on the left of the status line
+"    - the window scope, on the right of the status line
+"    - the tabpage scope, at the end of a tab label
+"    - the global scope, on the right of the tab line
+"
+" That's more or less what `vim-flagship` does.
+" This is a useful convention because it makes a flag give more information;
+" its position tells us what is affected.
+
 " How to set a flag in the tabpage scope?{{{2
 "
 " Like for any other scope:
@@ -149,6 +206,41 @@ let g:loaded_statusline = 1
 "                                   ^^^^^^^
 "         return '...'
 "     endfu
+
+" What is a "volatile" flag?{{{2
+"
+" If a flag  A is on for  one minute, then off  for one minute, then  on for one
+" minute etc. while a flag B is on  for five consecutive minutes, then A is more
+" **volatile** than B.
+"
+" The more volatile a flag is, the  more on the left of the buffer/tabpage scope
+" – or on the right of the window/global scope – it should be.
+
+" I have 2 flags A and B in the same scope.  I don't know which one should be displayed first!{{{2
+"
+" Ask yourself this: how frequently could I be in a situation where B is on,
+" and the state of A changes (on → off, off → on)?
+"
+" If the answer is "often", then B should be displayed:
+"
+"    - before A if they are in the buffer/tabpage scope
+"    - after A if they are in the tabpage/global scope
+"
+" The goal is to prevent as much  as possible that a recently displayed flag
+" disturbs the positions of existing flags.
+"
+" ---
+"
+" Don't think about it too much. Tweak the priorities by experimentation.
+" If  the display  of  A often  disturbs  the position  of  B, increase  A's
+" priority so that it's greater than B's priority.
+
+" For the priorities, what type of numbers should I use?{{{2
+"
+" Follow this  useful convention: any  flag installed from this  file should
+" have a priority which is a multiple of 10.
+" For flags installed from third-party plugins, use priorities which are not
+" multiples of 10.
 "}}}1
 
 " Init {{{1
@@ -249,95 +341,6 @@ augroup my_statusline
         \ | call s:build_flags()
         \ | endif
 
-    " How to make sure two consecutive flags A and B are visually well separated?{{{
-    "
-    " If the length of A is fixed (e.g. 12), and A is not highlighted:
-    "
-    "     %-13{item}
-    "      ├─┘
-    "      └ make the length of the flag one cell longer than the text it displays
-    "        and left-align it
-    "
-    " You could also append a space manually:
-    "
-    "     '%{item} '
-    "             ^
-    "
-    " But the space would be displayed unconditionally which you probably don't want.
-    "
-    " ---
-    "
-    " If the length of A is fixed, and A *is* highlighted, don't try to append a
-    " space; it would get highlighted which would be ugly.
-    "
-    " ---
-    "
-    " If  the length  of A  can  vary, highlight  it  with a  HG different  than
-    " `StatusLine` so that it clearly stands out.
-    "}}}
-    " What are the "buffer", "window", "tabpage" and "global" scopes?{{{
-    "
-    " A flag may give an information about:
-    "
-    "    - a buffer; we say it's in the *buffer scope*
-    "    - a window; we say it's in the *window scope*
-    "    - all buffers in a tabpage; we say it's in the *tabpage scope*
-    "    - some setting which applies to all buffers/windows/tabpages; we say it's in the *global scope*
-    "
-    " By convention, we display a flag in:
-    "
-    "    - the buffer scope, on the left of the status line
-    "    - the window scope, on the right of the status line
-    "    - the tabpage scope, at the end of a tab label
-    "    - the global scope, on the right of the tab line
-    "
-    " That's more or less what `vim-flagship` does.
-    " This is a useful convention because it makes a flag give more information;
-    " its position tells us what is affected.
-    "}}}
-    " What is a "volatile" flag?{{{
-    "
-    " For any given flag, you should consider 2 characteristics:
-    "
-    "    - how frequent is it displayed?
-    "    - how stable is it?
-    "
-    " During a one-hour Vim  session, if a flag A is  displayed for ten minutes,
-    " and a flag B for five minutes, A is more **frequent** than B.
-    " But if A  is on for one minute,  then off for one minute, then  on for one
-    " minute etc.  while B is  on for five consecutive  minutes, then B  is more
-    " **stable** than A.
-    "
-    " The  more  stable/frequent  a  flag  is,  the more  on  the  left  of  the
-    " buffer/tabpage scope  – or on  the right of  the window/global scope  – it
-    " should be.
-    "}}}
-    " I have 2 flags A and B in the same scope.  I don't know which one should be displayed first!{{{
-    "
-    " Ask yourself this: how frequently could I be in a situation where B is on,
-    " and the state of A changes (on → off, off → on)?
-    "
-    " If the answer is "often", then B should be displayed:
-    "
-    "    - before A if they are in the buffer/tabpage scope
-    "    - after A if they are in the tabpage/global scope
-    "
-    " The goal is to prevent as much  as possible that a recently displayed flag
-    " disturbs the positions of existing flags.
-    "
-    " ---
-    "
-    " Don't think about it too much. Tweak the priorities by experimentation.
-    " If  the display  of  A often  disturbs  the position  of  B, increase  A's
-    " priority so that it's greater than B's priority.
-    "}}}
-    " For the priorities, what type of numbers should I use?{{{
-    "
-    " Follow this  useful convention: any  flag installed from this  file should
-    " have a priority which is a multiple of 10.
-    " For flags installed from third-party plugins, use priorities which are not
-    " multiples of 10.
-    "}}}
     " the lower the priority, the closer to the right end of the tab line the flag is
     au User MyFlags call statusline#hoist('global', '%{&ve is# "all" ? "[ve=all]" : ""}', 10)
     au User MyFlags call statusline#hoist('global', '%{&dip =~# "iwhiteall" ? "[dip~iwa]" : ""}', 20)
@@ -363,7 +366,13 @@ augroup my_statusline
     au User MyFlags call statusline#hoist('buffer', '%a', 10)
     au User MyFlags call statusline#hoist('buffer', ' %1*%{statusline#tail_of_path()}%* ', 20)
     au User MyFlags call statusline#hoist('buffer', '%r', 30)
-    au User MyFlags call statusline#hoist('buffer', '%{statusline#fugitive()}', 40)
+    " Why do you disable the git branch flag with `0 &&`?{{{
+    "
+    " We're always working on a master branch, so this flag is not useful at the moment.
+    " When  we'll start  to  regularly  work on  different  branches  of a  same
+    " project, then it will become useful, and you should get rid of `0 &&`.
+    "}}}
+    au User MyFlags call statusline#hoist('buffer', '%{0 && exists("*fugitive#statusline") ? fugitive#statusline() : ""}', 40)
     au User MyFlags call statusline#hoist('buffer',
         \ '%2*%{&mod && bufname("%") != "" && &bt !=# "terminal" ? "[+]" : ""}', 50)
 
@@ -546,16 +555,6 @@ if ! has('nvim')
                 \ ..s:flags.window
         endif
     endfu
-    " What's the difference between `g:statusline_winid` and `g:actual_curwin`?{{{
-    "
-    " The former can be used in an `%!` expression, the latter inside a `%{}` item.
-    " Note that, inside a `%{}` expression:
-    "
-    "     g:actual_curwin == win_getid()
-    "
-    " So, it's only useful to avoid the  overhead created by the invocation of a
-    " Vimscript function.
-    "}}}
 
 else
     " Do *not* assume that the expression for non-focused windows will be evaluated only in the window you leave. {{{
@@ -951,9 +950,3 @@ endfu
 "       random type, random name
 "}}}
 
-fu statusline#fugitive() abort "{{{2
-    if ! get(g:, 'my_fugitive_branch', 0)
-        return ''
-    endif
-    return exists('*fugitive#statusline') ? fugitive#statusline() : ''
-endfu
