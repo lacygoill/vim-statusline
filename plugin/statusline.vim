@@ -381,6 +381,7 @@ augroup my_statusline
     au User MyFlags call statusline#hoist('window', '%9(%.5l,%.3v%)', 20)
     au User MyFlags call statusline#hoist('window', '%{&l:pvw ? "[pvw]" : ""}', 30)
     au User MyFlags call statusline#hoist('window', '%{&l:diff ? "[diff]" : ""}', 40)
+    au User MyFlags call statusline#hoist('window', '%{&l:scb ? "[scb]" : ""}', 50)
 
     " TODO: Add a tabpage flag to show whether the focused project is dirty?{{{
     "
@@ -544,10 +545,13 @@ if ! has('nvim')
     fu statusline#main() abort
         if g:statusline_winid != win_getid()
             let winnr = win_id2win(g:statusline_winid)
+            " Don't remove the negative width fields.
+            " They are necessary to separate the flag (when it's on) from the percentage.
             return ' %1*%{statusline#tail_of_path()}%* '
                \ ..'%='
-               \ ..'%-6{&l:pvw ? "[pvw]" : ""}'
+               \ ..'%-6{&l:scb ? "[scb]" : ""}'
                \ ..'%-7{&l:diff ? "[diff]" : ""}'
+               \ ..'%-6{&l:pvw ? "[pvw]" : ""}'
                \ ..(getwinvar(winnr, '&pvw', 0) ? '%p%% ' : '')
         else
             return s:flags.buffer
@@ -605,8 +609,9 @@ else
         if ! a:has_focus
             return ' %1*%{statusline#tail_of_path()}%* '
                \ ..'%='
-               \ ..'%-6{&l:pvw ? "[pvw]" : ""}'
+               \ ..'%-6{&l:scb ? "[scb]" : ""}'
                \ ..'%-7{&l:diff ? "[diff]" : ""}'
+               \ ..'%-6{&l:pvw ? "[pvw]" : ""}'
                \ ..'%{&l:pvw ? float2nr(100.0 * line(".")/line("$")).."% " : ""}'
         else
             return s:flags.buffer
