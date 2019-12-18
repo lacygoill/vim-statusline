@@ -442,6 +442,42 @@ augroup my_statusline
     " Open a new github issue, or leave a comment on issue #3770.
     " Try to include a good and simple MWE to convince the devs that it would be
     " a worthy change.
+    "
+    " Alternatively, ask  for `state()`  to report whether  a function  is being
+    " processed or a script is being sourced.
+    " This way, we could write:
+    "
+    "     %{&ve is# "all" && state("f") == "" ? "[ve=all]" : ""}
+    "                               │
+    "                               └ indicate that Vim is busy processing a function
+    "                                 or sourcing a script
+    "
+    " ---
+    "
+    " TODO: You could also try to delay `:redrawt` until after the function has been processed:
+    "
+    "     au OptionSet diffopt,paste,virtualedit au SafeState * ++once redrawt
+    "                                            ^^^^^^^^^^^^^^^^^^^^^
+    "
+    " But it doesn't work as expected.
+    " For example, install this flag:
+    "
+    "     au User MyFlags call statusline#hoist('global', '%{!&lz ? "[nolz]" : ""}', 40)
+    "
+    " Then press `saiw` on a word to execute a custom operator provided by vim-sandwich.
+    " The flag `[nolz]` is displayed in the tab line.
+    "
+    " I can reproduce the issue even when using a long timer:
+    "
+    "     au OptionSet diffopt,paste,virtualedit call timer_start(3000, {-> execute('redrawt')})
+    "                                                             ^^^^
+    "
+    " I don't understand; when the callback  is processed, `'lz'` should be set;
+    " but for some reason, the tab line thinks it's still reset...
+    "
+    " Btw,  if  you wonder  why  the  flag is  displayed  even  though we  don't
+    " include `lazyredraw`  in the autocmd pattern,  that's because vim-sandwich
+    " temporarily set `'ve'` (in addition to `'lz'`).
     "}}}
     au OptionSet diffopt,paste,virtualedit redrawt
 
