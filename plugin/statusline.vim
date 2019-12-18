@@ -275,274 +275,6 @@ if ! has('nvim')
     set stl=%!statusline#main()
 endif
 
-" Commands {{{1
-
-com -bar -complete=custom,s:complete -nargs=? -range=% StlFlags call s:display_flags(<q-args>)
-
-fu s:complete(_a, _l, _p) abort
-    return join(s:SCOPES, "\n")
-endfu
-
-fu s:display_flags(scope) abort
-    let scopes = a:scope is# '' ? s:SCOPES : [a:scope]
-    let lines = []
-    for scope in scopes
-        " underline each `scope ...` line with a `---` line
-        let lines += ['', 'scope '..scope, substitute('scope '..scope, '.', '-', 'g'), '']
-        let lines += map(deepcopy(s:flags_db[scope]),
-            \ {_,v -> substitute(v.flag, '\s\+$', '\=repeat("█", len(submatch(0)))', '') .."\x01".. v.priority})
-        " `substitute()` makes visible a trailing whitespace in a flag
-
-        " Purpose:{{{
-        "
-        " If there is one flag, and only one flag in a given scope, the flags in
-        " the subsequent scopes will not be formatted correctly.
-        " This is because the ranges in  our next global commands work under the
-        " assumption that a scope always contains several flags.
-        "
-        " To fix this issue, we temporarily add a dummy flag.
-        "
-        " ---
-        "
-        " Our  global  commands still  give  the  desired  result when  a  scope
-        " contains no flag.
-        "}}}
-        if len(s:flags_db[scope]) == 1
-            let lines += ['dummy flag 123']
-        endif
-    endfor
-    exe 'pedit '..tempname()
-    wincmd P
-    if ! &pvw | return | endif
-    setl bt=nofile nobl noswf nowrap
-    call append(0, lines)
-    let range = '/^---//\d\+$/ ; /\d\+$//^\s*$\|\%$/-'
-    " align priorities in a column
-    sil keepj keepp g/^---/exe range.."!column -t -s\x01"
-    " for each scope, sort the flags according to their priority
-    sil! keepj keepp g/^---/exe range..'sort /.\{-}\ze\d\+$/ n'
-    "  │
-    "  └ in case the scope does not contain any flag
-    sil keepj keepp g/dummy flag 123/d_
-    1d_
-    " highlight flags installed from third-party plugins
-    call matchadd('DiffAdd', '.*[1-9]$')
-    nmap <buffer><nowait><silent> q <plug>(my_quit)
-endfu
-
-" Autocmds {{{1
-
-augroup my_statusline
-    au!
-
-    " get flags from third-party plugins
-    au VimEnter * if exists('#User#MyFlags')
-        \ | do <nomodeline> User MyFlags
-        \ | call s:build_flags()
-        \ | endif
-
-    " the lower the priority, the closer to the right end of the tab line the flag is
-    au User MyFlags call statusline#hoist('global', '%{&ve is# "all" ? "[ve=all]" : ""}', 10)
-    au User MyFlags call statusline#hoist('global', '%{&dip =~# "iwhiteall" ? "[dip~iwa]" : ""}', 20)
-    " Why an indicator for the 'paste' option?{{{
-    "
-    " Atm there's an issue  in Nvim, where `'paste'` may be  wrongly set when we
-    " paste  some text  on the  command-line  with a  trailing literal  carriage
-    " return.
-    "
-    " Anyway, this is  an option which has too many  effects; we need to
-    " be informed immediately whenever it's set.
-    "}}}
-    au User MyFlags call statusline#hoist('global', '%2*%{&paste ? "[paste]" : ""}', 30)
-
-    " the lower the priority, the closer to the left end of the status line the flag is
-    " Why the arglist at the very start?{{{
-    "
-    " So that the index is always in the same position.
-    " Otherwise, when you traverse the arglist, the index position changes every
-    " time the length of the filename  also changes; this is jarring when you're
-    " traversing fast and you're looking for a particular index.
-    "}}}
-    au User MyFlags call statusline#hoist('buffer', '%a', 10)
-    au User MyFlags call statusline#hoist('buffer', ' %1*%{statusline#tail_of_path()}%* ', 20)
-    au User MyFlags call statusline#hoist('buffer', '%r', 30)
-    " Why do you disable the git branch flag with `0 &&`?{{{
-    "
-    " We're always working on a master branch, so this flag is not useful at the moment.
-    " When  we'll start  to  regularly  work on  different  branches  of a  same
-    " project, then it will become useful, and you should get rid of `0 &&`.
-    "}}}
-    au User MyFlags call statusline#hoist('buffer', '%{0 && exists("*fugitive#statusline") ? fugitive#statusline() : ""}', 40)
-    au User MyFlags call statusline#hoist('buffer',
-        \ '%2*%{&mod && bufname("%") != "" && &bt !=# "terminal" ? "[+]" : ""}', 50)
-
-    " the lower the priority, the closer to the right end of the status line the flag is
-    au User MyFlags call statusline#hoist('window', '%5p%% ', 10)
-    au User MyFlags call statusline#hoist('window', '%9(%.5l,%.3v%)', 20)
-    au User MyFlags call statusline#hoist('window', '%{&l:pvw ? "[pvw]" : ""}', 30)
-    au User MyFlags call statusline#hoist('window', '%{&l:diff ? "[diff]" : ""}', 40)
-    au User MyFlags call statusline#hoist('window', '%{&l:scb ? "[scb]" : ""}', 50)
-
-    " TODO: Add a tabpage flag to show whether the focused project is dirty?{{{
-    "
-    " I.e. the project contains non-commited changes.
-    "
-    " If you  try to implement this  flag, cache the  state of the project  in a
-    " buffer variable.
-    " But when  would we update  the cache?   Running an external  shell command
-    " (here `git(1)`) is costly...
-    "}}}
-    au User MyFlags call statusline#hoist('tabpage', '%{statusline#tabpagewinnr({tabnr})}', 10)
-
-    " Purpose:{{{
-    "
-    " We use the tab  line to display some flags telling  us whether some global
-    " options are set; among them is `'paste'`
-    " But the  tab line is not  automatically redrawn when we  (re)set an option
-    " (contrary to the status line).
-    " We want  to be informed *as  soon* *as* `'paste'` (and  possibly others in
-    " the future) is (re)set.
-    "
-    " ---
-    "
-    " We would not  need this autocmd if  the tab line was  redrawn whenever the
-    " status line is; which has been discussed in the past:
-    "
-    " > My suggestion  (if it  isn't too  expansive) was  to always  refresh the
-    " > tabline, if the statusline is also refreshed. That seems consistent.
-    "
-    " Source: https://github.com/vim/vim/issues/3770#issuecomment-451972003
-    "
-    " But it has not been implemented for various reasons:
-    "
-    " > We  could  either also  update  the  tabline,  or add  a  :redrawtabline
-    " > command.   The last  would  be more  logical, since  it  depends on  the
-    " > 'tabline' option and has nothing to do with what's in 'statusline'.
-    "
-    " Source: https://github.com/vim/vim/issues/3770#issuecomment-452082906
-    " See also: https://github.com/vim/vim/issues/3770#issuecomment-452095497
-    "}}}
-    " A flag for one of these options is briefly displayed in the tab line when I use a custom mapping/command!{{{
-    "
-    " Maybe the mapping/command temporarily changes  the value of the option for
-    " which a flag is displayed.
-    " For example, when  we press `m]` to expand a  diagram via `vim-breakdown`,
-    " `'ve'` is temporarily set to `all`:
-    "
-    "     set ve=all
-    "
-    " If you can, prefix `:set` with `:noa`:
-    "
-    "     noa set ve=all
-    "     ^^^
-    "
-    " If you can't (because the option is set in a third-party plugin), consider
-    " asking the tab line to be redrawn whenever the status line is, or whenever
-    " a global option is (re)set.
-    " Open a new github issue, or leave a comment on issue #3770.
-    " Try to include a good and simple MWE to convince the devs that it would be
-    " a worthy change.
-    "
-    " Alternatively, ask  for `state()`  to report whether  a function  is being
-    " processed or a script is being sourced.
-    " This way, we could write:
-    "
-    "     %{&ve is# "all" && state("f") == "" ? "[ve=all]" : ""}
-    "                               │
-    "                               └ indicate that Vim is busy processing a function
-    "                                 or sourcing a script
-    "
-    " ---
-    "
-    " TODO: You could also try to delay `:redrawt` until after the function has been processed:
-    "
-    "     au OptionSet diffopt,paste,virtualedit au SafeState * ++once redrawt
-    "                                            ^^^^^^^^^^^^^^^^^^^^^
-    "
-    " But it doesn't work as expected.
-    " For example, install this flag:
-    "
-    "     au User MyFlags call statusline#hoist('global', '%{!&lz ? "[nolz]" : ""}', 40)
-    "
-    " Then press `saiw` on a word to execute a custom operator provided by vim-sandwich.
-    " The flag `[nolz]` is displayed in the tab line.
-    "
-    " I can reproduce the issue even when using a long timer:
-    "
-    "     au OptionSet diffopt,paste,virtualedit call timer_start(3000, {-> execute('redrawt')})
-    "                                                             ^^^^
-    "
-    " I don't understand; when the callback  is processed, `'lz'` should be set;
-    " but for some reason, the tab line thinks it's still reset...
-    "
-    " Btw,  if  you wonder  why  the  flag is  displayed  even  though we  don't
-    " include `lazyredraw`  in the autocmd pattern,  that's because vim-sandwich
-    " temporarily set `'ve'` (in addition to `'lz'`).
-    "}}}
-    au OptionSet diffopt,paste,virtualedit redrawt
-
-    au CmdWinEnter * let &l:stl = ' %l'
-
-    if has('nvim')
-        " Which alternative to these autocmds could I use?{{{
-        "
-        " You could leverage the fact that `winnr()` evaluates to the number of:
-        "
-        "    - the active window in a `%!` expression
-        "    - the window to which the status line belongs in an `%{}` expression
-        "
-        " The comparison between the two evaluations tells you whether you're in
-        " an active  or inactive  window at  the time  the function  setting the
-        " status line contents is invoked.
-        "
-        " And to  avoid having to re-evaluate  `winnr()` every time you  need to
-        " know whether you're  in an active or inactive window,  you can use the
-        " first `%{}` to set a window variable.
-        "
-        " MWE:
-        "
-        "     $ vim -Nu <(cat <<'EOF'
-        "     " here `winnr()` is the number of the *active* window
-        "     set stl=%!GetStl(winnr())
-        "
-        "     fu GetStl(nr) abort
-        "       return '%{SetStlFlag('..a:nr..')} %{w:is_active ? "active" : "inactive"}'
-        "     endfu
-        "
-        "     fu SetStlFlag(nr) abort
-        "     " here `winnr()` is the number of the window to which the status line belongs
-        "       return get(extend(w:, {'is_active': (winnr() == a:nr)}), '', '')
-        "     endfu
-        "     EOF
-        "     ) +vs
-        "
-        " Source: https://github.com/vim/vim/issues/4406#issuecomment-495496763
-        "}}}
-        "   What is its limitation?{{{
-        "
-        " The  function can  only  know whether  it's called  for  an active  or
-        " inactive  window inside  a  `%{}` expression;  but  inside, you  can't
-        " include a `%w`, `%p`, ...:
-        "
-        "     %{w:is_active ? "" : "%w"}
-        "                           ^^
-        "                           ✘
-        "
-        " As a workaround, you can try to emulate them:
-        "
-        "     %{w:is_active ? "" : (&l:pvw ? "[Preview]" : "")}
-        "
-        " But that's not always easy, and it seems awkward/cumbersome.
-        "}}}
-        au BufWinEnter,WinEnter * setl stl=%!statusline#main(1)
-        au WinLeave             * setl stl=%!statusline#main(0)
-
-        " no `WinEnter` / `BufWinEnter` is fired right after the creation of a `UnicodeTable` buffer
-        au BufDelete UnicodeTable setl stl=%!statusline#main(1)
-            \ | let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')..'| set stl<'
-    endif
-augroup END
-
 " Functions {{{1
 fu statusline#hoist(scope, flag, ...) abort "{{{2
     unlockvar! s:flags_db
@@ -990,4 +722,306 @@ endfu
 "       It's the default value used for a buffer without any peculiarity:
 "       random type, random name
 "}}}
+
+fu s:register_delayed_global_flag(option, priority) abort "{{{2
+    let g:{a:option}_is_off = 0
+    exe 'au OptionSet '..a:option..' call s:update_global_flag('..string(a:option)..')'
+    exe printf('au User MyFlags call statusline#hoist(''global'', ''%s'', %d)',
+        \ '%{!&'..a:option..' && get(g:, "'..a:option..'_is_off", 0) ? "[nolz]" : ""}',
+        \ 40
+        \ )
+endfu
+
+fu s:update_global_flag(option) abort "{{{2
+    if v:option_new == 0 && ! g:{a:option}_is_off
+        let s:{a:option}_is_off_timer_id =
+            \ timer_start(&timeoutlen, {-> execute('let g:'..a:option..'_is_off = 1 | redrawt')})
+    elseif v:option_new == 1
+        if exists('s:'..a:option..'_is_off_timer_id')
+            call timer_stop(s:{a:option}_is_off_timer_id)
+            unlet! s:{a:option}_is_off_timer_id
+        endif
+        let g:{a:option}_is_off = 0 | redrawt
+    endif
+endfu
+"}}}1
+" Autocmds {{{1
+
+augroup my_statusline
+    au!
+
+    " get flags from third-party plugins
+    au VimEnter * if exists('#User#MyFlags')
+        \ | do <nomodeline> User MyFlags
+        \ | call s:build_flags()
+        \ | endif
+
+    " the lower the priority, the closer to the right end of the tab line the flag is
+    au User MyFlags call statusline#hoist('global', '%{&ve is# "all" ? "[ve=all]" : ""}', 10)
+    au User MyFlags call statusline#hoist('global', '%{&dip =~# "iwhiteall" ? "[dip~iwa]" : ""}', 20)
+    " Why an indicator for the 'paste' option?{{{
+    "
+    " Atm there's an issue  in Nvim, where `'paste'` may be  wrongly set when we
+    " paste  some text  on the  command-line  with a  trailing literal  carriage
+    " return.
+    "
+    " Anyway, this is  an option which has too many  effects; we need to
+    " be informed immediately whenever it's set.
+    "}}}
+    au User MyFlags call statusline#hoist('global', '%2*%{&paste ? "[paste]" : ""}', 30)
+
+    " What does `s:register_delayed_global_flag()` do?{{{
+    "
+    " It displays a flag in the tab line when an option has been reset for `&timeout` ms.
+    " This  makes   sure  that  the  flag   is  not  displayed  when   a  custom
+    " mapping/command temporarily resets the option, which would be distracting.
+    "}}}
+    " Why do we need this function for `'lz'` but not for other global options like `'paste'`?{{{
+    "
+    " The  `sa`  operator from  `vim-sandwich`  temporarily  resets `'lz'`,  and
+    " causes the tab  line to be redrawn  (btw, this has nothing to  do with our
+    " `:redrawt` which we run from an autocmd).
+    " As  a result,  the `[nolz]`  flag  is displayed  as  long as  you stay  in
+    " operator-pending mode, which is distracting.
+    " To fix this, we need `&&  state('o') == ''` but `state()` is not available
+    " in Nvim atm.
+    "}}}
+    call s:register_delayed_global_flag('lazyredraw', 40)
+    " TODO: Once Nvim supports `state()`, maybe try to replace this line with:{{{
+    "
+    "     au User MyFlags call statusline#hoist('global', '%{!&lz && state("o") == "" ? "[nolz]" : ""}', 40)
+    "
+    " Although, I'm not sure it's a good idea...
+    "
+    " Right now, we have an autocmd in our vimrc to delay setting `'lz'`.
+    " If  we stop  using  `s:register_delayed_global_flag()`,  `[nolz]` will  be
+    " displayed in the tab line when we start Vim, until it's redrawn.
+    " We would need to set `'lz'` right from the start...
+    "}}}
+
+    " the lower the priority, the closer to the left end of the status line the flag is
+    " Why the arglist at the very start?{{{
+    "
+    " So that the index is always in the same position.
+    " Otherwise, when you traverse the arglist, the index position changes every
+    " time the length of the filename  also changes; this is jarring when you're
+    " traversing fast and you're looking for a particular index.
+    "}}}
+    au User MyFlags call statusline#hoist('buffer', '%a', 10)
+    au User MyFlags call statusline#hoist('buffer', ' %1*%{statusline#tail_of_path()}%* ', 20)
+    au User MyFlags call statusline#hoist('buffer', '%r', 30)
+    " Why do you disable the git branch flag with `0 &&`?{{{
+    "
+    " We're always working on a master branch, so this flag is not useful at the moment.
+    " When  we'll start  to  regularly  work on  different  branches  of a  same
+    " project, then it will become useful, and you should get rid of `0 &&`.
+    "}}}
+    au User MyFlags call statusline#hoist('buffer', '%{0 && exists("*fugitive#statusline") ? fugitive#statusline() : ""}', 40)
+    au User MyFlags call statusline#hoist('buffer',
+        \ '%2*%{&mod && bufname("%") != "" && &bt !=# "terminal" ? "[+]" : ""}', 50)
+
+    " the lower the priority, the closer to the right end of the status line the flag is
+    au User MyFlags call statusline#hoist('window', '%5p%% ', 10)
+    au User MyFlags call statusline#hoist('window', '%9(%.5l,%.3v%)', 20)
+    au User MyFlags call statusline#hoist('window', '%{&l:pvw ? "[pvw]" : ""}', 30)
+    au User MyFlags call statusline#hoist('window', '%{&l:diff ? "[diff]" : ""}', 40)
+    au User MyFlags call statusline#hoist('window', '%{&l:scb ? "[scb]" : ""}', 50)
+
+    " TODO: Add a tabpage flag to show whether the focused project is dirty?{{{
+    "
+    " I.e. the project contains non-commited changes.
+    "
+    " If you  try to implement this  flag, cache the  state of the project  in a
+    " buffer variable.
+    " But when  would we update  the cache?   Running an external  shell command
+    " (here `git(1)`) is costly...
+    "}}}
+    au User MyFlags call statusline#hoist('tabpage', '%{statusline#tabpagewinnr({tabnr})}', 10)
+
+    " Purpose:{{{
+    "
+    " We use the tab  line to display some flags telling  us whether some global
+    " options are set; among them is `'paste'`
+    " But the  tab line is not  automatically redrawn when we  (re)set an option
+    " (contrary to the status line).
+    " We want  to be informed *as  soon* *as* `'paste'` (and  possibly others in
+    " the future) is (re)set.
+    "
+    " ---
+    "
+    " We would not  need this autocmd if  the tab line was  redrawn whenever the
+    " status line is; which has been discussed in the past:
+    "
+    " > My suggestion  (if it  isn't too  expansive) was  to always  refresh the
+    " > tabline, if the statusline is also refreshed. That seems consistent.
+    "
+    " Source: https://github.com/vim/vim/issues/3770#issuecomment-451972003
+    "
+    " But it has not been implemented for various reasons:
+    "
+    " > We  could  either also  update  the  tabline,  or add  a  :redrawtabline
+    " > command.   The last  would  be more  logical, since  it  depends on  the
+    " > 'tabline' option and has nothing to do with what's in 'statusline'.
+    "
+    " Source: https://github.com/vim/vim/issues/3770#issuecomment-452082906
+    " See also: https://github.com/vim/vim/issues/3770#issuecomment-452095497
+    "}}}
+    " A flag for one of these options is briefly displayed in the tab line when I use a custom mapping/command!{{{
+    "
+    " That should not happen thanks to the timer, but if for some reason it does
+    " happen and  it comes  from one  of your plugin  which temporarily  sets an
+    " option, try to prefix `:set` with `:noa`:
+    "
+    "     noa set ve=all
+    "     ^^^
+    "
+    " ---
+    "
+    " Or try to delay `:redrawt` with a timer or until the next `SafeState` event.
+    " Warning: Doing so may create an issue.
+    " To reproduce, write this:
+    "
+    "     au User MyFlags call statusline#hoist('global', '%{!&lz && state("o") == "" ? "[nolz]" : ""}', 40)
+    "     au OptionSet diffopt,lazyredraw,paste,virtualedit call timer_start(0, {-> execute('redrawt')})
+    "
+    " Then, press `saiw` on a word and wait as long as you want.
+    " Finally, press Escape: `[nolz]` is displayed in the tab line even though `'lz'` is set.
+    " It's a weird issue;  it's as if `&lz` was evaluated with  the value it had
+    " when the timer – and not the callback – was called.
+    "
+    " ---
+    "
+    " As a last resort, consider asking the  tab line to be redrawn whenever the
+    " status line is, or whenever a global option is (re)set.
+    " Open a new github issue, or leave a comment on issue #3770.
+    " Try to include a good and simple MWE to convince the devs that it would be
+    "
+    " Or ask for `state()` to report whether  a function is being processed or a
+    " script is being sourced.
+    " This way, we could write:
+    "
+    "     %{&ve is# "all" && state("f") == "" ? "[ve=all]" : ""}
+    "                               │
+    "                               └ indicate that Vim is busy processing a function
+    "                                 or sourcing a script
+    " a worthy change.
+    "}}}
+    au OptionSet diffopt,paste,virtualedit redrawt
+
+    au CmdWinEnter * let &l:stl = ' %l'
+
+    if has('nvim')
+        " Which alternative to these autocmds could I use?{{{
+        "
+        " You could leverage the fact that `winnr()` evaluates to the number of:
+        "
+        "    - the active window in a `%!` expression
+        "    - the window to which the status line belongs in an `%{}` expression
+        "
+        " The comparison between the two evaluations tells you whether you're in
+        " an active  or inactive  window at  the time  the function  setting the
+        " status line contents is invoked.
+        "
+        " And to  avoid having to re-evaluate  `winnr()` every time you  need to
+        " know whether you're  in an active or inactive window,  you can use the
+        " first `%{}` to set a window variable.
+        "
+        " MWE:
+        "
+        "     $ vim -Nu <(cat <<'EOF'
+        "     " here `winnr()` is the number of the *active* window
+        "     set stl=%!GetStl(winnr())
+        "
+        "     fu GetStl(nr) abort
+        "       return '%{SetStlFlag('..a:nr..')} %{w:is_active ? "active" : "inactive"}'
+        "     endfu
+        "
+        "     fu SetStlFlag(nr) abort
+        "     " here `winnr()` is the number of the window to which the status line belongs
+        "       return get(extend(w:, {'is_active': (winnr() == a:nr)}), '', '')
+        "     endfu
+        "     EOF
+        "     ) +vs
+        "
+        " Source: https://github.com/vim/vim/issues/4406#issuecomment-495496763
+        "}}}
+        "   What is its limitation?{{{
+        "
+        " The  function can  only  know whether  it's called  for  an active  or
+        " inactive  window inside  a  `%{}` expression;  but  inside, you  can't
+        " include a `%w`, `%p`, ...:
+        "
+        "     %{w:is_active ? "" : "%w"}
+        "                           ^^
+        "                           ✘
+        "
+        " As a workaround, you can try to emulate them:
+        "
+        "     %{w:is_active ? "" : (&l:pvw ? "[Preview]" : "")}
+        "
+        " But that's not always easy, and it seems awkward/cumbersome.
+        "}}}
+        au BufWinEnter,WinEnter * setl stl=%!statusline#main(1)
+        au WinLeave             * setl stl=%!statusline#main(0)
+
+        " no `WinEnter` / `BufWinEnter` is fired right after the creation of a `UnicodeTable` buffer
+        au BufDelete UnicodeTable setl stl=%!statusline#main(1)
+            \ | let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')..'| set stl<'
+    endif
+augroup END
+
+" Commands {{{1
+
+com -bar -complete=custom,s:complete -nargs=? -range=% StlFlags call s:display_flags(<q-args>)
+
+fu s:complete(_a, _l, _p) abort
+    return join(s:SCOPES, "\n")
+endfu
+
+fu s:display_flags(scope) abort
+    let scopes = a:scope is# '' ? s:SCOPES : [a:scope]
+    let lines = []
+    for scope in scopes
+        " underline each `scope ...` line with a `---` line
+        let lines += ['', 'scope '..scope, substitute('scope '..scope, '.', '-', 'g'), '']
+        let lines += map(deepcopy(s:flags_db[scope]),
+            \ {_,v -> substitute(v.flag, '\s\+$', '\=repeat("█", len(submatch(0)))', '') .."\x01".. v.priority})
+        " `substitute()` makes visible a trailing whitespace in a flag
+
+        " Purpose:{{{
+        "
+        " If there is one flag, and only one flag in a given scope, the flags in
+        " the subsequent scopes will not be formatted correctly.
+        " This is because the ranges in  our next global commands work under the
+        " assumption that a scope always contains several flags.
+        "
+        " To fix this issue, we temporarily add a dummy flag.
+        "
+        " ---
+        "
+        " Our  global  commands still  give  the  desired  result when  a  scope
+        " contains no flag.
+        "}}}
+        if len(s:flags_db[scope]) == 1
+            let lines += ['dummy flag 123']
+        endif
+    endfor
+    exe 'pedit '..tempname()
+    wincmd P
+    if ! &pvw | return | endif
+    setl bt=nofile nobl noswf nowrap
+    call append(0, lines)
+    let range = '/^---//\d\+$/ ; /\d\+$//^\s*$\|\%$/-'
+    " align priorities in a column
+    sil keepj keepp g/^---/exe range.."!column -t -s\x01"
+    " for each scope, sort the flags according to their priority
+    sil! keepj keepp g/^---/exe range..'sort /.\{-}\ze\d\+$/ n'
+    "  │
+    "  └ in case the scope does not contain any flag
+    sil keepj keepp g/dummy flag 123/d_
+    1d_
+    " highlight flags installed from third-party plugins
+    call matchadd('DiffAdd', '.*[1-9]$')
+    nmap <buffer><nowait><silent> q <plug>(my_quit)
+endfu
 
