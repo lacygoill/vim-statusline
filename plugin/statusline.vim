@@ -878,6 +878,7 @@ augroup my_statusline
     " ---
     "
     " Or try to delay `:redrawt` with a timer or until the next `SafeState` event.
+    "
     " Warning: Doing so may create an issue.
     " To reproduce, write this:
     "
