@@ -723,19 +723,19 @@ endfu
 "       random type, random name
 "}}}
 
-fu s:register_delayed_global_flag(option, priority) abort "{{{2
+fu s:register_delayed_global_flag(option, priority, time) abort "{{{2
     let g:{a:option}_is_off = 0
-    exe 'au OptionSet '..a:option..' call s:update_global_flag('..string(a:option)..')'
+    exe 'au OptionSet '..a:option..' call s:update_global_flag('..string(a:option)..','..a:time..')'
     exe printf('au User MyFlags call statusline#hoist(''global'', ''%s'', %d)',
         \ '%{!&'..a:option..' && get(g:, "'..a:option..'_is_off", 0) ? "[nolz]" : ""}',
         \ 40
         \ )
 endfu
 
-fu s:update_global_flag(option) abort "{{{2
+fu s:update_global_flag(option, time) abort "{{{2
     if v:option_new == 0 && ! g:{a:option}_is_off
         let s:{a:option}_is_off_timer_id =
-            \ timer_start(&timeoutlen, {-> execute('let g:'..a:option..'_is_off = 1 | redrawt')})
+            \ timer_start(a:time, {-> execute('let g:'..a:option..'_is_off = 1 | redrawt')})
     elseif v:option_new == 1
         if exists('s:'..a:option..'_is_off_timer_id')
             call timer_stop(s:{a:option}_is_off_timer_id)
@@ -772,32 +772,42 @@ augroup my_statusline
 
     " What does `s:register_delayed_global_flag()` do?{{{
     "
-    " It displays a flag in the tab line when an option has been reset for `&timeout` ms.
+    " It displays a  flag in the tab line  when an option has been  reset for an
+    " arbitrary amount of time.
     " This  makes   sure  that  the  flag   is  not  displayed  when   a  custom
     " mapping/command temporarily resets the option, which would be distracting.
     "}}}
     " Why do we need this function for `'lz'` but not for other global options like `'paste'`?{{{
     "
-    " The  `sa`  operator from  `vim-sandwich`  temporarily  resets `'lz'`,  and
-    " causes the tab  line to be redrawn  (btw, this has nothing to  do with our
-    " `:redrawt` which we run from an autocmd).
+    " `'lz'` is special.
+    "
+    " For example, if you replace the line with:
+    "
+    "     au User MyFlags call statusline#hoist('global', '%{!&lz ? "[nolz]" : ""}', 40)
+    "
+    " Then execute `:redrawt`: the `[nolz]` flag is displayed in the tab line.
+    " I think that when `:redrawt` is run, Vim resets the option temporarily.
+    " Anyway, because of this, the flag could also be displayed when our autocmd
+    " running `:redrawt` is triggered.
+    "
+    " ---
+    "
+    " Besides, the `sa` operator  from `vim-sandwich` temporarily resets `'lz'`,
+    " and causes the  tab line to be  redrawn (btw, this has nothing  to do with
+    " our `:redrawt` which we run from an autocmd).
     " As  a result,  the `[nolz]`  flag  is displayed  as  long as  you stay  in
     " operator-pending mode, which is distracting.
     " To fix this, we need `&&  state('o') == ''` but `state()` is not available
     " in Nvim atm.
-    "}}}
-    call s:register_delayed_global_flag('lazyredraw', 40)
-    " TODO: Once Nvim supports `state()`, maybe try to replace this line with:{{{
     "
-    "     au User MyFlags call statusline#hoist('global', '%{!&lz && state("o") == "" ? "[nolz]" : ""}', 40)
-    "
-    " Although, I'm not sure it's a good idea...
+    " ---
     "
     " Right now, we have an autocmd in our vimrc to delay setting `'lz'`.
     " If  we stop  using  `s:register_delayed_global_flag()`,  `[nolz]` will  be
     " displayed in the tab line when we start Vim, until it's redrawn.
     " We would need to set `'lz'` right from the start...
     "}}}
+    call s:register_delayed_global_flag('lazyredraw', 40, 5000)
 
     " the lower the priority, the closer to the left end of the status line the flag is
     " Why the arglist at the very start?{{{
@@ -866,6 +876,16 @@ augroup my_statusline
     " Source: https://github.com/vim/vim/issues/3770#issuecomment-452082906
     " See also: https://github.com/vim/vim/issues/3770#issuecomment-452095497
     "}}}
+    " Why the timer?{{{
+    "
+    " To avoid a flag being temporarily displayed  in the tab line when we use a
+    " custom command which temporarily resets a global option.
+    " For example, that may happen with `m)` (`vim-breakdown`).
+    "
+    " The timer  *should* make sure that  the redrawing occurs *after*  a custom
+    " command has finished being processed, and  that it has restored any option
+    " which was temporarily reset.
+    "}}}
     " A flag for one of these options is briefly displayed in the tab line when I use a custom mapping/command!{{{
     "
     " That should not happen thanks to the timer, but if for some reason it does
@@ -874,21 +894,6 @@ augroup my_statusline
     "
     "     noa set ve=all
     "     ^^^
-    "
-    " ---
-    "
-    " Or try to delay `:redrawt` with a timer or until the next `SafeState` event.
-    "
-    " Warning: Doing so may create an issue.
-    " To reproduce, write this:
-    "
-    "     au User MyFlags call statusline#hoist('global', '%{!&lz && state("o") == "" ? "[nolz]" : ""}', 40)
-    "     au OptionSet diffopt,lazyredraw,paste,virtualedit call timer_start(0, {-> execute('redrawt')})
-    "
-    " Then, press `saiw` on a word and wait as long as you want.
-    " Finally, press Escape: `[nolz]` is displayed in the tab line even though `'lz'` is set.
-    " It's a weird issue;  it's as if `&lz` was evaluated with  the value it had
-    " when the timer – and not the callback – was called.
     "
     " ---
     "
@@ -905,9 +910,12 @@ augroup my_statusline
     "                               │
     "                               └ indicate that Vim is busy processing a function
     "                                 or sourcing a script
+    "
+    " Open a new github issue, or leave a comment on issue #3770.
+    " Try to include a good and simple MWE to convince the devs that it would be
     " a worthy change.
     "}}}
-    au OptionSet diffopt,paste,virtualedit redrawt
+    au OptionSet diffopt,paste,virtualedit call timer_start(0, {-> execute('redrawt')})
 
     au CmdWinEnter * let &l:stl = ' %l'
 
