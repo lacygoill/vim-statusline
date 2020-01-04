@@ -269,9 +269,9 @@ set guioptions-=e
 
 set tabline=%!statusline#tabline()
 
-" TODO: Once `8.1.1372` has been ported to Nvim, remove all the `if ! has('nvim')` guards,
+" TODO: Once `8.1.1372` has been ported to Nvim, remove all the `if !has('nvim')` guards,
 " and when they contain an `else` block, remove the latter too.
-if ! has('nvim')
+if !has('nvim')
     set stl=%!statusline#main()
 endif
 
@@ -309,7 +309,7 @@ fu s:build_flags() abort
 endfu
 
 " statusline {{{2
-if ! has('nvim')
+if !has('nvim')
     fu statusline#main() abort
         if g:statusline_winid != win_getid()
             let winnr = win_id2win(g:statusline_winid)
@@ -338,7 +338,7 @@ else
     "
     " This means that when you write the first expression:
     "
-    "     if ! a:has_focus
+    "     if !a:has_focus
     "         return 1st_expr
     "     endif
     "
@@ -354,7 +354,7 @@ else
     " This  explains  why you  can  test  `&ft` outside  a  `%{}`  item in  the  2nd
     " expression, but not in the first:
     "
-    "     if ! has_focus
+    "     if !has_focus
     "         ✘
     "         return '...'.(&bt is# 'quickfix' ? '...' : '')
     "     endif
@@ -364,7 +364,7 @@ else
     "     :...
     "
     "
-    "     if ! has_focus
+    "     if !has_focus
     "         ✔
     "         return '...%{&bt is# 'quickfix' ? "..." : ""}'
     "     endif
@@ -374,7 +374,7 @@ else
     "     :...
     "}}}
     fu statusline#main(has_focus) abort
-        if ! a:has_focus
+        if !a:has_focus
             return ' %1*%{statusline#tail_of_path()}%* '
                \ ..'%='
                \ ..'%-6{&l:scb ? "[scb]" : ""}'
@@ -733,7 +733,7 @@ fu s:register_delayed_global_flag(option, priority, time) abort "{{{2
 endfu
 
 fu s:update_global_flag(option, time) abort "{{{2
-    if v:option_new == 0 && ! g:{a:option}_is_off
+    if v:option_new == 0 && !g:{a:option}_is_off
         let s:{a:option}_is_off_timer_id =
             \ timer_start(a:time, {-> execute('let g:'..a:option..'_is_off = 1 | redrawt')})
     elseif v:option_new == 1
@@ -1017,7 +1017,7 @@ fu s:display_flags(scope) abort
     endfor
     exe 'pedit '..tempname()
     wincmd P
-    if ! &pvw | return | endif
+    if !&pvw | return | endif
     setl bt=nofile nobl noswf nowrap
     call append(0, lines)
     let range = '/^---//\d\+$/ ; /\d\+$//^\s*$\|\%$/-'
