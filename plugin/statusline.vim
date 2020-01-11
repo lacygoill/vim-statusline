@@ -313,14 +313,12 @@ if !has('nvim')
     fu statusline#main() abort
         if g:statusline_winid != win_getid()
             let winnr = win_id2win(g:statusline_winid)
-            " Don't remove the negative width fields.
-            " They are necessary to separate the flag (when it's on) from the percentage.
             return ' %1*%{statusline#tail_of_path()}%* '
                \ ..'%='
-               \ ..'%-6{&l:scb ? "[scb]" : ""}'
-               \ ..'%-7{&l:diff ? "[diff]" : ""}'
-               \ ..'%-6{&l:pvw ? "[pvw]" : ""}'
-               \ ..(getwinvar(winnr, '&pvw', 0) ? '%p%% ' : '')
+               \ ..'%{&l:scb ? "[scb]" : ""}'
+               \ ..'%{&l:diff ? "[diff]" : ""}'
+               \ ..'%{&l:pvw ? "[pvw]" : ""}'
+               \ ..(getwinvar(winnr, '&pvw', 0) ? '%4p%% ' : '')
         else
             return s:flags.buffer
                 \ ..'%='
@@ -377,10 +375,9 @@ else
         if !a:has_focus
             return ' %1*%{statusline#tail_of_path()}%* '
                \ ..'%='
-               \ ..'%-6{&l:scb ? "[scb]" : ""}'
-               \ ..'%-7{&l:diff ? "[diff]" : ""}'
-               \ ..'%-6{&l:pvw ? "[pvw]" : ""}'
-               \ ..'%{&l:pvw ? float2nr(100.0 * line(".")/line("$")).."% " : ""}'
+               \ ..'%{&l:scb ? "[scb]" : ""}'
+               \ ..'%{&l:diff ? "[diff]" : ""}'
+               \ ..'%{&l:pvw ? "[pvw] "..float2nr(100.0 * line(".")/line("$")).."% " : ""}'
         else
             return s:flags.buffer
                \ ..'%='
@@ -728,7 +725,7 @@ fu s:register_delayed_global_flag(option, priority, time) abort "{{{2
     exe 'au OptionSet '..a:option..' call s:update_global_flag('..string(a:option)..','..a:time..')'
     exe printf('au User MyFlags call statusline#hoist(''global'', ''%s'', %d)',
         \ '%{!&'..a:option..' && get(g:, "'..a:option..'_is_off", 0) ? "[nolz]" : ""}',
-        \ 40
+        \ a:priority
         \ )
 endfu
 
@@ -769,6 +766,15 @@ augroup my_statusline
     " be informed immediately whenever it's set.
     "}}}
     au User MyFlags call statusline#hoist('global', '%2*%{&paste ? "[paste]" : ""}', 30)
+    " Why an indicator for the 'ignorecase' option?{{{
+    "
+    " Recently, it  was temporarily  reset by  `$VIMRUNTIME/indent/vim.vim`, but
+    " was not properly set again.
+    " We should be  immediately informed when that happens,  because this option
+    " has many effects; e.g. when reset,  you can't tab complete custom commands
+    " written in lowercase.
+    "}}}
+    au User MyFlags call statusline#hoist('global', '%2*%{&ic ? "" : "[noic]"}', 40)
 
     " What does `s:register_delayed_global_flag()` do?{{{
     "
@@ -807,7 +813,7 @@ augroup my_statusline
     " displayed in the tab line when we start Vim, until it's redrawn.
     " We would need to set `'lz'` right from the start...
     "}}}
-    call s:register_delayed_global_flag('lazyredraw', 40, 5000)
+    call s:register_delayed_global_flag('lazyredraw', 50, 5000)
 
     " the lower the priority, the closer to the left end of the status line the flag is
     " Why the arglist at the very start?{{{
@@ -915,7 +921,7 @@ augroup my_statusline
     " Try to include a good and simple MWE to convince the devs that it would be
     " a worthy change.
     "}}}
-    au OptionSet diffopt,paste,virtualedit call timer_start(0, {-> execute('redrawt')})
+    au OptionSet diffopt,ignorecase,paste,virtualedit call timer_start(0, {-> execute('redrawt')})
 
     au CmdWinEnter * let &l:stl = ' %l'
 
