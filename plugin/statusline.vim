@@ -128,13 +128,7 @@ let g:loaded_statusline = 1
 "}}}2
 " What's the difference between `g:statusline_winid` and `g:actual_curwin`?{{{2
 "
-" The former can be used in an `%!` expression, the latter inside a `%{}` item.
-" Note that, inside a `%{}` expression:
-"
-"     g:actual_curwin == win_getid()
-"
-" So, it's only useful to avoid the  overhead created by the invocation of a
-" Vimscript function.
+" The former can be used in a `%!` expression, the latter inside a `%{}` item.
 
 " How to make sure two consecutive flags A and B are visually well separated?{{{2
 "
@@ -292,6 +286,7 @@ fu statusline#hoist(scope, flag, ...) abort "{{{2
     let s:flags_db[a:scope] += [{
         \ 'flag': flag,
         \ 'priority': get(a:, '1', 0),
+        \ 'source': get(a:, '2', ''),
         \ }]
     lockvar! s:flags_db
 endfu
@@ -741,21 +736,130 @@ fu s:update_global_flag(option, time) abort "{{{2
         let g:{a:option}_is_off = 0 | redrawt
     endif
 endfu
+
+fu s:cot_was_altered() abort "{{{2
+    return mode(1) is# 'n' && sort(split(&cot, ",")) !=# get(g:, 'orig_completeopt', &cot)
+endfu
+
+fu s:snr() abort "{{{2
+    return matchstr(expand('<sfile>'), '.*\zs<SNR>\d\+_')
+endfu
+let s:snr = get(s:, 'snr', s:snr())
+
+fu s:check_option_has_not_been_altered(longopt, shortopt, priority) abort "{{{2
+    " save original value of option in a buffer-local variable
+    if a:shortopt is# 'isk'
+        " Why don't you save the original value of `'isk'` in a help file?{{{
+        "
+        " Open a help file, then restart Vim.
+        " Without this guard, the `[isk]` flag is wrongly displayed.
+        "
+        "     local:  iskeyword=!-~,^*,^|,^",192-255,-
+        "             Last set from ~/.vim/plugged/vim-session/plugin/session.vim
+        "
+        "     original value: @,48-57,_,192-255,-
+        "
+        " ---
+        "
+        " You could use this guard:
+        "
+        "     if !(&ft is# 'help' && exists('g:SessionLoad'))
+        "
+        " But there would  still be another issue.   Execute `:h|e|q|h`; the
+        " `[isk]` flag is – again – wrongly displayed:
+        "
+        "     local:  iskeyword=!-~,^*,^|,^",192-255,-
+        "             Last set from ~/.vim/plugged/vim-help/after/ftplugin/help.vim
+        "
+        "     original value: @,48-57,_,192-255,-
+        "}}}
+        "   Ok, but why is `'isk'` a special case?{{{
+        "
+        " When we source  a session, `'isk'` is one of the few  options which is not
+        " properly restored in a help file.
+        " See `s:restore_these()` in `~/.vim/plugged/vim-session/plugin/session.vim`.
+        "
+        " And out  of those, it's the  only one in  which we are interested  to know
+        " whether a script has altered its value.
+        "}}}
+        au save_original_options BufNewFile,BufReadPost,FileType * if &ft isnot# 'help'
+            \ |     let b:orig_iskeyword = &l:isk
+            \ |     let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')..'|unlet! b:orig_iskeyword'
+            \ | endif
+    else
+        " Why must I use the long name of an option in `b:orig_...`?{{{
+        "
+        " If you used the short name, `:Vo` would fail to display the original value
+        " of an option which has been altered.
+        "
+        " ---
+        "
+        " When you use `:Vo`, you may provide the short name or the long name of an option.
+        " To make the code simpler in `debug#verbose#option()`, we need to normalize
+        " this name; we do so with this kind of expression:
+        "
+        "     :echo matchstr(execute('set isk?'), '[a-z]\+')
+        "     iskeyword~
+        "
+        " Because  of this  normalization, the  rest of  the function  refers to  an
+        " option via its long name.
+        " In  particular,   at  the  end,   the  function  inspects  the   value  of
+        " `b:orig_longopt`; for  it to work, we  need to create variable  names with
+        " long option names.
+        "}}}
+        exe printf('au save_original_options BufNewFile,BufReadPost,FileType * '
+            \ .. 'let b:orig_%s = &l:%s'
+            \ ..'|let b:undo_ftplugin = get(b:, "undo_ftplugin", "exe").."|unlet! b:orig_%s"',
+            \ a:longopt, a:longopt, a:longopt)
+    endif
+    " install a flag whose purpose is to warn us whenever the value of the option is altered
+    exe printf('au User MyFlags call statusline#hoist('
+        \ ..'"buffer", ''%%2*%%{&l:%s isnot# get(b:, "orig_%s", &l:%s) ? "[%s+]" : ""}'', %d)',
+        \ a:shortopt, a:longopt, a:shortopt, a:shortopt, a:priority)
+endfu
+augroup save_original_options
+    au!
+augroup END
 "}}}1
 " Autocmds {{{1
 
 augroup my_statusline
     au!
 
-    " get flags from third-party plugins
+    " get flags (including the ones from third-party plugins)
     au VimEnter * if exists('#User#MyFlags')
         \ | do <nomodeline> User MyFlags
         \ | call s:build_flags()
         \ | endif
 
+    " When should I highlight a flag with `User2`?{{{
+    "
+    " When there is  no chance in hell  you've *manually* set the  option with a
+    " value you don't want.
+    "
+    " E.g., we never tweak `'ic'` manually and  we don't want it to be reset; so
+    " if it *is* reset we should be informed that it's broken; it probably means
+    " that some plugin is badly written or has a bug which sometimes prevents it
+    " to restore the option value after a temporary reset.
+    "
+    " OTOH, we  may sometimes tweak `'ve'`  (e.g. with `cov` mapping),  so if it
+    " doesn't have its original default  value, it doesn't necessarily mean that
+    " something is wrong; and it doesn't warrant a special highlighting.
+    "}}}
     " the lower the priority, the closer to the right end of the tab line the flag is
-    au User MyFlags call statusline#hoist('global', '%{&ve is# "all" ? "[ve=all]" : ""}', 10)
+    au User MyFlags call statusline#hoist('global',
+        \ '%{&ve isnot# "'..get(g:, 'orig_virtualedit', &ve)
+        \ ..'" && mode(1) is# "n" ? "[ve="..&ve.."]" : ""}', 10)
     au User MyFlags call statusline#hoist('global', '%{&dip =~# "iwhiteall" ? "[dip~iwa]" : ""}', 20)
+    " Why an indicator for the 'ignorecase' option?{{{
+    "
+    " Recently, it  was temporarily  reset by  `$VIMRUNTIME/indent/vim.vim`, but
+    " was not properly set again.
+    " We should be  immediately informed when that happens,  because this option
+    " has many effects; e.g. when reset,  you can't tab complete custom commands
+    " written in lowercase.
+    "}}}
+    au User MyFlags call statusline#hoist('global', '%2*%{!&ic? "[noic]" : ""}', 30)
     " Why an indicator for the 'paste' option?{{{
     "
     " Atm there's an issue  in Nvim, where `'paste'` may be  wrongly set when we
@@ -765,16 +869,9 @@ augroup my_statusline
     " Anyway, this is  an option which has too many  effects; we need to
     " be informed immediately whenever it's set.
     "}}}
-    au User MyFlags call statusline#hoist('global', '%2*%{&paste ? "[paste]" : ""}', 30)
-    " Why an indicator for the 'ignorecase' option?{{{
-    "
-    " Recently, it  was temporarily  reset by  `$VIMRUNTIME/indent/vim.vim`, but
-    " was not properly set again.
-    " We should be  immediately informed when that happens,  because this option
-    " has many effects; e.g. when reset,  you can't tab complete custom commands
-    " written in lowercase.
-    "}}}
-    au User MyFlags call statusline#hoist('global', '%2*%{&ic ? "" : "[noic]"}', 40)
+    au User MyFlags call statusline#hoist('global', '%2*%{&paste ? "[paste]" : ""}', 40)
+    au User MyFlags call statusline#hoist('global',
+        \ '%2*%{'..s:snr..'cot_was_altered()? "[cot+]" : ""}', 50)
 
     " What does `s:register_delayed_global_flag()` do?{{{
     "
@@ -813,7 +910,7 @@ augroup my_statusline
     " displayed in the tab line when we start Vim, until it's redrawn.
     " We would need to set `'lz'` right from the start...
     "}}}
-    call s:register_delayed_global_flag('lazyredraw', 50, 5000)
+    call s:register_delayed_global_flag('lazyredraw', 60, 5000)
 
     " the lower the priority, the closer to the left end of the status line the flag is
     " Why the arglist at the very start?{{{
@@ -832,9 +929,13 @@ augroup my_statusline
     " When  we'll start  to  regularly  work on  different  branches  of a  same
     " project, then it will become useful, and you should get rid of `0 &&`.
     "}}}
-    au User MyFlags call statusline#hoist('buffer', '%{0 && exists("*fugitive#statusline") ? fugitive#statusline() : ""}', 40)
+    au User MyFlags call statusline#hoist('buffer',
+        \ '%{0 && exists("*fugitive#statusline") ? fugitive#statusline() : ""}', 40)
     au User MyFlags call statusline#hoist('buffer',
         \ '%2*%{&mod && bufname("%") != "" && &bt !=# "terminal" ? "[+]" : ""}', 50)
+    " Warning: Use this function *only* for buffer-local options.
+    call s:check_option_has_not_been_altered('autoindent', 'ai', 60)
+    call s:check_option_has_not_been_altered('iskeyword', 'isk', 70)
 
     " the lower the priority, the closer to the right end of the status line the flag is
     au User MyFlags call statusline#hoist('window', '%5p%% ', 10)
@@ -921,7 +1022,8 @@ augroup my_statusline
     " Try to include a good and simple MWE to convince the devs that it would be
     " a worthy change.
     "}}}
-    au OptionSet diffopt,ignorecase,paste,virtualedit call timer_start(0, {-> execute('redrawt')})
+    au OptionSet completeopt,diffopt,ignorecase,paste,virtualedit
+        \ call timer_start(0, {-> execute('redrawt')})
 
     au CmdWinEnter * let &l:stl = ' %l'
 
@@ -1037,6 +1139,26 @@ fu s:display_flags(scope) abort
     1d_
     " highlight flags installed from third-party plugins
     call matchadd('DiffAdd', '.*[1-9]$')
+    sil! call fold#logfile#main()
+    sil! call toggle_settings#auto_open_fold(1)
     nmap <buffer><nowait><silent> q <plug>(my_quit)
+    nmap <buffer><nowait><silent> <cr> :<c-u>echo <sid>get_source_file()<cr>
+    nmap <buffer><nowait><silent> <c-w>F :<c-u>call <sid>open_source_file()<cr>
+endfu
+
+fu s:get_source_file() abort
+    let scope = matchstr(getline(search('^scope', 'bnW')), '^scope \zs\w\+')
+    let priority_under_cursor = matchstr(getline('.'), '\d\+$')
+    let source = get(get(filter(deepcopy(s:flags_db[scope]),
+        \ {_,v -> v.priority == priority_under_cursor}), 0, {}), 'source', '')
+    return source
+endfu
+
+fu s:open_source_file() abort
+    let source = s:get_source_file()
+    if empty(source) | return | endif
+    let [file, lnum] = matchlist(source, '\(.*\):\(\d\+\)')[1:2]
+    exe 'sp +'..lnum..' '..file
+    norm! zv
 endfu
 
