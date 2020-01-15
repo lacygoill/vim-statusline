@@ -235,6 +235,25 @@ let g:loaded_statusline = 1
 " have a priority which is a multiple of 10.
 " For flags installed from third-party plugins, use priorities which are not
 " multiples of 10.
+" I have a flag checking whether the value of an option has been altered.{{{2
+" It is still displayed even when I restore the original value of the option!{{{3
+"
+" For a comma-separated list of items, the order matters.
+" Your new  value may contain  the same  items as the  original value, but  in a
+" different order.
+"
+"    1. you should not restore the option manually;
+"       your plugin/script  should do  it, and  it should  not use  a "relative"
+"       assignment operator like `+=`, but an "absolute" one like `=`
+"
+"    2. if your plugin/script  fails to restore the option, and  you need to
+"       quickly fix it, just reload your  buffer (for a buffer-local option) or
+"       restart Vim (for a global option)
+"
+" You could try to make the flags insensitive  to the order of the items, but it
+" would add some complexity for a too small benefit.
+" If one day you try to make them insensitive, make sure our `:Vo` command still
+" works as expected.
 "}}}1
 
 " Init {{{1
@@ -737,15 +756,6 @@ fu s:update_global_flag(option, time) abort "{{{2
     endif
 endfu
 
-fu s:cot_was_altered() abort "{{{2
-    return mode(1) is# 'n' && sort(split(&cot, ",")) !=# get(g:, 'orig_completeopt', &cot)
-endfu
-
-fu s:snr() abort "{{{2
-    return matchstr(expand('<sfile>'), '.*\zs<SNR>\d\+_')
-endfu
-let s:snr = get(s:, 'snr', s:snr())
-
 fu s:check_option_has_not_been_altered(longopt, shortopt, priority) abort "{{{2
     " save original value of option in a buffer-local variable
     if a:shortopt is# 'isk'
@@ -871,7 +881,7 @@ augroup my_statusline
     "}}}
     au User MyFlags call statusline#hoist('global', '%2*%{&paste ? "[paste]" : ""}', 40)
     au User MyFlags call statusline#hoist('global',
-        \ '%2*%{'..s:snr..'cot_was_altered()? "[cot+]" : ""}', 50)
+        \ '%2*%{&cot !=# "'..get(g:, 'orig_completeopt', &cot)..'" && mode(1) is# "n"? "[cot+]" : ""}', 50)
 
     " What does `s:register_delayed_global_flag()` do?{{{
     "
