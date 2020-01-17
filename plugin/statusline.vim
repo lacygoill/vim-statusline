@@ -619,6 +619,9 @@ fu statusline#tabpage_label(n, curtab) abort "{{{2
         let bufname = fnamemodify(bufname, ':p')
     endif
 
+    " don't display anything in the label of the current tab page if we focus a special buffer
+    if a:n == a:curtab && &bt isnot# ''
+        let label = ''
     " Display the cwd iff:{{{
     "
     "    - the buffer has a name
@@ -632,7 +635,7 @@ fu statusline#tabpage_label(n, curtab) abort "{{{2
     "        - it's complete in the status line
     "}}}
     " `b:root_dir` is set by `vim-cwd`
-    if bufname isnot# '' && (a:n == a:curtab || getbufvar(bufnr, 'root_dir', '') isnot# '')
+    elseif bufname isnot# '' && (a:n == a:curtab || getbufvar(bufnr, 'root_dir', '') isnot# '')
         let cwd = getcwd(winnr, a:n)
         let cwd = pathshorten(substitute(cwd, '^\V'..escape($HOME, '\')..'/', '', ''))
         " append a slash to avoid confusion with a buffer name
