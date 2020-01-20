@@ -1152,7 +1152,7 @@ fu s:display_flags(scope) abort
     1d_
     " highlight flags installed from third-party plugins
     call matchadd('DiffAdd', '.*[1-9]$')
-    sil! call fold#logfile#main()
+    sil! call fold#adhoc#main()
     sil! call toggle_settings#auto_open_fold(1)
     nmap <buffer><nowait><silent> q <plug>(my_quit)
     nmap <buffer><nowait><silent> <cr> :<c-u>echo <sid>get_source_file()<cr>
