@@ -946,9 +946,10 @@ augroup my_statusline
         \ '%{0 && exists("*fugitive#statusline") ? fugitive#statusline() : ""}', 40)
     au User MyFlags call statusline#hoist('buffer',
         \ '%2*%{&mod && bufname("%") != "" && &bt !=# "terminal" ? "[+]" : ""}', 50)
+    au User MyFlags call statusline#hoist('buffer', '%{&bt is# "terminal" && mode() is# "n" ? "[n]" : ""}', 60)
     " Warning: Use this function *only* for buffer-local options.
-    call s:check_option_has_not_been_altered('autoindent', 'ai', 60)
-    call s:check_option_has_not_been_altered('iskeyword', 'isk', 70)
+    call s:check_option_has_not_been_altered('autoindent', 'ai', 70)
+    call s:check_option_has_not_been_altered('iskeyword', 'isk', 80)
 
     " the lower the priority, the closer to the right end of the status line the flag is
     au User MyFlags call statusline#hoist('window', '%5p%% ', 10)
