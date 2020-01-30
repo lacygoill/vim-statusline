@@ -1021,8 +1021,7 @@ augroup my_statusline
     " Try to include a good and simple MWE to convince the devs that it would be
     " a worthy change.
     "}}}
-    au OptionSet completeopt,diffopt,paste,virtualedit
-        \ call timer_start(0, {-> execute('redrawt')})
+    au OptionSet diffopt,paste call timer_start(0, {-> execute('redrawt')})
 
     au CmdWinEnter * let &l:stl = ' %l'
 
