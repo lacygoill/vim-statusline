@@ -845,6 +845,16 @@ augroup my_statusline
         \ | call s:build_flags()
         \ | endif
 
+    au User MyFlags call statusline#hoist('global', '%{&dip =~# "iwhiteall" ? "[dip~iwa]" : ""}', 10)
+    " Why an indicator for the 'paste' option?{{{
+    "
+    " Atm there's an issue  in Nvim, where `'paste'` may be  wrongly set when we
+    " paste  some text  on the  command-line  with a  trailing literal  carriage
+    " return.
+    "
+    " Anyway, this is  an option which has too many  effects; we need to
+    " be informed immediately whenever it's set.
+    "}}}
     " When should I highlight a flag with `User2`?{{{
     "
     " When there is  no chance in hell  you've *manually* set the  option with a
@@ -859,32 +869,7 @@ augroup my_statusline
     " doesn't have its original default  value, it doesn't necessarily mean that
     " something is wrong; and it doesn't warrant a special highlighting.
     "}}}
-    " the lower the priority, the closer to the right end of the tab line the flag is
-    au User MyFlags call statusline#hoist('global',
-        \ '%{&ve isnot# "'..get(g:, 'orig_virtualedit', &ve)
-        \ ..'" && mode(1) is# "n" ? "[ve="..&ve.."]" : ""}', 10)
-    au User MyFlags call statusline#hoist('global', '%{&dip =~# "iwhiteall" ? "[dip~iwa]" : ""}', 20)
-    " Why an indicator for the 'ignorecase' option?{{{
-    "
-    " Recently, it  was temporarily  reset by  `$VIMRUNTIME/indent/vim.vim`, but
-    " was not properly set again.
-    " We should be  immediately informed when that happens,  because this option
-    " has many effects; e.g. when reset,  you can't tab complete custom commands
-    " written in lowercase.
-    "}}}
-    au User MyFlags call statusline#hoist('global', '%2*%{!&ic? "[noic]" : ""}', 30)
-    " Why an indicator for the 'paste' option?{{{
-    "
-    " Atm there's an issue  in Nvim, where `'paste'` may be  wrongly set when we
-    " paste  some text  on the  command-line  with a  trailing literal  carriage
-    " return.
-    "
-    " Anyway, this is  an option which has too many  effects; we need to
-    " be informed immediately whenever it's set.
-    "}}}
-    au User MyFlags call statusline#hoist('global', '%2*%{&paste ? "[paste]" : ""}', 40)
-    au User MyFlags call statusline#hoist('global',
-        \ '%2*%{&cot !=# "'..get(g:, 'orig_completeopt', &cot)..'" && mode(1) is# "n"? "[cot+]" : ""}', 50)
+    au User MyFlags call statusline#hoist('global', '%2*%{&paste ? "[paste]" : ""}', 20)
 
     " What does `s:register_delayed_global_flag()` do?{{{
     "
@@ -923,7 +908,7 @@ augroup my_statusline
     " displayed in the tab line when we start Vim, until it's redrawn.
     " We would need to set `'lz'` right from the start...
     "}}}
-    call s:register_delayed_global_flag('lazyredraw', 60, 5000)
+    call s:register_delayed_global_flag('lazyredraw', 30, 5000)
 
     " the lower the priority, the closer to the left end of the status line the flag is
     " Why the arglist at the very start?{{{
@@ -1036,7 +1021,7 @@ augroup my_statusline
     " Try to include a good and simple MWE to convince the devs that it would be
     " a worthy change.
     "}}}
-    au OptionSet completeopt,diffopt,ignorecase,paste,virtualedit
+    au OptionSet completeopt,diffopt,paste,virtualedit
         \ call timer_start(0, {-> execute('redrawt')})
 
     au CmdWinEnter * let &l:stl = ' %l'
