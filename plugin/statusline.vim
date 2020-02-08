@@ -749,7 +749,7 @@ endfu
 fu s:update_global_flag(option, time) abort "{{{2
     if v:option_new == 0 && !g:{a:option}_is_off
         let s:{a:option}_is_off_timer_id =
-            \ timer_start(a:time, {-> execute('let g:'..a:option..'_is_off = 1 | redrawt')})
+            \ timer_start(a:time, {-> execute(['let g:'..a:option..'_is_off = 1', 'redrawt'])})
     elseif v:option_new == 1
         if exists('s:'..a:option..'_is_off_timer_id')
             call timer_stop(s:{a:option}_is_off_timer_id)
