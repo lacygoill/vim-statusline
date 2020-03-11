@@ -1044,17 +1044,17 @@ augroup my_statusline
         " MWE:
         "
         "     $ vim -Nu <(cat <<'EOF'
-        "     " here `winnr()` is the number of the *active* window
-        "     set stl=%!GetStl(winnr())
+        "         " here `winnr()` is the number of the *active* window
+        "         set stl=%!GetStl(winnr())
         "
-        "     fu GetStl(nr) abort
-        "       return '%{SetStlFlag('..a:nr..')} %{w:is_active ? "active" : "inactive"}'
-        "     endfu
+        "         fu GetStl(nr) abort
+        "           return '%{SetStlFlag('..a:nr..')} %{w:is_active ? "active" : "inactive"}'
+        "         endfu
         "
-        "     fu SetStlFlag(nr) abort
-        "     " here `winnr()` is the number of the window to which the status line belongs
-        "       return get(extend(w:, {'is_active': (winnr() == a:nr)}), '', '')
-        "     endfu
+        "         fu SetStlFlag(nr) abort
+        "         " here `winnr()` is the number of the window to which the status line belongs
+        "           return get(extend(w:, {'is_active': (winnr() == a:nr)}), '', '')
+        "         endfu
         "     EOF
         "     ) +vs
         "
