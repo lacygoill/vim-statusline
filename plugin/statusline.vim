@@ -207,8 +207,9 @@ let g:loaded_statusline = 1
 " minute etc. while a flag B is on  for five consecutive minutes, then A is more
 " **volatile** than B.
 "
-" The more volatile a flag is, the  more on the left of the buffer/tabpage scope
-" – or on the right of the window/global scope – it should be.
+" The more volatile a flag is, the more on the right of the buffer/tabpage scope
+" –  or on  the left  of the  window/global scope  – it  should be,  so that  it
+" disturbs the position of as fewer flags as possible.
 
 " I have 2 flags A and B in the same scope.  I don't know which one should be displayed first!{{{2
 "
@@ -235,6 +236,7 @@ let g:loaded_statusline = 1
 " have a priority which is a multiple of 10.
 " For flags installed from third-party plugins, use priorities which are not
 " multiples of 10.
+"
 " I have a flag checking whether the value of an option has been altered.{{{2
 " It is still displayed even when I restore the original value of the option!{{{3
 "
@@ -870,6 +872,14 @@ augroup my_statusline
     " something is wrong; and it doesn't warrant a special highlighting.
     "}}}
     au User MyFlags call statusline#hoist('global', '%2*%{&paste ? "[paste]" : ""}', 20)
+    " Why an indicator for the 'wrapscan' option?{{{
+    "
+    " You'll probably need  to temporarily reset it while  replaying a recursive
+    " macro; otherwise, it could be stuck in an infinite loop.
+    " We currently have a mapping to toggle  the option, but we need some visual
+    " clue to check whether the option is indeed reset.
+    "}}}
+    au User MyFlags call statusline#hoist('global', '%{!&ws ? "[nows]" : ""}', 30)
 
     " What does `s:register_delayed_global_flag()` do?{{{
     "
@@ -908,7 +918,7 @@ augroup my_statusline
     " displayed in the tab line when we start Vim, until it's redrawn.
     " We would need to set `'lz'` right from the start...
     "}}}
-    call s:register_delayed_global_flag('lazyredraw', 30, 5000)
+    call s:register_delayed_global_flag('lazyredraw', 40, 5000)
 
     " the lower the priority, the closer to the left end of the status line the flag is
     " Why the arglist at the very start?{{{
@@ -1021,7 +1031,7 @@ augroup my_statusline
     " Try to include a good and simple MWE to convince the devs that it would be
     " a worthy change.
     "}}}
-    au OptionSet diffopt,paste call timer_start(0, {-> execute('redrawt')})
+    au OptionSet diffopt,paste,wrapscan call timer_start(0, {-> execute('redrawt')})
 
     au CmdWinEnter * let &l:stl = ' %l'
 
