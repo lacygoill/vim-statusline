@@ -674,7 +674,7 @@ fu statusline#tabpage_label(n, curtab) abort "{{{2
     " different window in the same tab page.
     "}}}
     if a:n != a:curtab | return label | endif
-    let len = len(label)
+    let len = strlen(label)
     let cnt = (s:TABLABEL_MAXSIZE - len)/2
     return repeat(' ', cnt)..label..repeat(' ', cnt+len%2)
 endfu
@@ -1110,7 +1110,7 @@ fu s:display_flags(scope) abort
         " underline each `scope ...` line with a `---` line
         let lines += ['', 'scope '..scope, substitute('scope '..scope, '.', '-', 'g'), '']
         let lines += map(deepcopy(s:flags_db[scope]),
-            \ {_,v -> substitute(v.flag, '\s\+$', '\=repeat("█", len(submatch(0)))', '') .."\x01".. v.priority})
+            \ {_,v -> substitute(v.flag, '\s\+$', '\=repeat("█", strlen(submatch(0)))', '') .."\x01".. v.priority})
         " `substitute()` makes visible a trailing whitespace in a flag
 
         " Purpose:{{{
