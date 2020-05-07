@@ -83,10 +83,10 @@ let g:loaded_statusline = 1
 "
 " For more info, `:h 'stl`:
 "
-" > ( - Start of item group.  Can  be used for setting the width and alignment
-" >                           of a section.  Must be followed by %) somewhere.
+" >     ( - Start of item group.  Can  be used for setting the width and alignment
+" >                               of a section.  Must be followed by %) somewhere.
 "
-" > ) - End of item group.    No width fields allowed.
+" >     ) - End of item group.    No width fields allowed.
 
 " -123  field {{{3
 
@@ -279,7 +279,7 @@ let s:flags = {'global': '', 'tabpage': '', 'buffer': '', 'window': ''}
 set ls=2 stal=2
 
 " `vim-flagship` recommends to remove the `e` flag from 'guioptions', because it:
-" > disables the GUI tab line in favor of the plain text version
+" >     disables the GUI tab line in favor of the plain text version
 set guioptions-=e
 
 set tabline=%!statusline#tabline()
@@ -978,16 +978,16 @@ augroup my_statusline
     " We would not  need this autocmd if  the tab line was  redrawn whenever the
     " status line is; which has been discussed in the past:
     "
-    " > My suggestion  (if it  isn't too  expansive) was  to always  refresh the
-    " > tabline, if the statusline is also refreshed. That seems consistent.
+    " >     My suggestion  (if it  isn't too  expansive) was  to always  refresh the
+    " >     tabline, if the statusline is also refreshed. That seems consistent.
     "
     " Source: https://github.com/vim/vim/issues/3770#issuecomment-451972003
     "
     " But it has not been implemented for various reasons:
     "
-    " > We  could  either also  update  the  tabline,  or add  a  :redrawtabline
-    " > command.   The last  would  be more  logical, since  it  depends on  the
-    " > 'tabline' option and has nothing to do with what's in 'statusline'.
+    " >     We  could  either also  update  the  tabline,  or add  a  :redrawtabline
+    " >     command.   The last  would  be more  logical, since  it  depends on  the
+    " >     'tabline' option and has nothing to do with what's in 'statusline'.
     "
     " Source: https://github.com/vim/vim/issues/3770#issuecomment-452082906
     " See also: https://github.com/vim/vim/issues/3770#issuecomment-452095497
