@@ -838,8 +838,7 @@ augroup END
 "}}}1
 " Autocmds {{{1
 
-augroup my_statusline
-    au!
+augroup my_statusline | au!
 
     " get flags (including the ones from third-party plugins)
     au VimEnter * if exists('#User#MyFlags')
