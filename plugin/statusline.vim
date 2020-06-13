@@ -284,11 +284,7 @@ set guioptions-=e
 
 set tabline=%!statusline#tabline()
 
-" TODO: Once `8.1.1372` has been ported to Nvim, remove all the `if !has('nvim')` guards,
-" and when they contain an `else` block, remove the latter too.
-if !has('nvim')
-    set stl=%!statusline#main()
-endif
+set stl=%!statusline#main()
 
 " Functions {{{1
 fu statusline#hoist(scope, flag, ...) abort "{{{2
@@ -325,82 +321,21 @@ fu s:build_flags() abort
 endfu
 
 " statusline {{{2
-if !has('nvim')
-    fu statusline#main() abort
-        if g:statusline_winid != win_getid()
-            let winnr = win_id2win(g:statusline_winid)
-            return ' %1*%{statusline#tail_of_path()}%* '
-               \ ..'%='
-               \ ..'%{&l:scb ? "[scb]" : ""}'
-               \ ..'%{&l:diff ? "[diff]" : ""}'
-               \ ..'%{&l:pvw ? "[pvw]" : ""}'
-               \ ..(getwinvar(winnr, '&pvw', 0) ? '%4p%% ' : '')
-        else
-            return s:flags.buffer
-                \ ..'%='
-                \ ..s:flags.window
-        endif
-    endfu
-
-else
-    " Do *not* assume that the expression for non-focused windows will be evaluated only in the window you leave. {{{
-    "
-    " `main(1)` will be evaluated only for the window you focus.
-    " But `main(0)` will be evaluated for ANY window which doesn't have the focus.
-    " And `main(0)` will be evaluated every time the status lines must be redrawn,
-    " which happens every time you change the focus from a window to another.
-    "
-    " This means that when you write the first expression:
-    "
-    "     if !a:has_focus
-    "         return 1st_expr
-    "     endif
-    "
-    " ... you must NOT assume that the  expression will only be evaluated in the
-    " previous window. It will be evaluated  inside ALL windows which don't have
-    " the focus, every time you change the focused window.
-    "
-    " This means that, if you want to reliably test a (buffer/window-)local variable:
-    "
-    "    - you NEED a `%{}`              in the expression for the non-focused windows
-    "    - you CAN work without a `%{}`  in the expression for the     focused window
-    "
-    " This  explains  why you  can  test  `&ft` outside  a  `%{}`  item in  the  2nd
-    " expression, but not in the first:
-    "
-    "     if !has_focus
-    "         ✘
-    "         return '...'.(&bt is# 'quickfix' ? '...' : '')
-    "     endif
-    "     ✔
-    "     return &bt is# 'quickfix'
-    "     ?...
-    "     :...
-    "
-    "
-    "     if !has_focus
-    "         ✔
-    "         return '...%{&bt is# 'quickfix' ? "..." : ""}'
-    "     endif
-    "     ✔
-    "     return &bt is# 'quickfix'
-    "     ?...
-    "     :...
-    "}}}
-    fu statusline#main(has_focus) abort
-        if !a:has_focus
-            return ' %1*%{statusline#tail_of_path()}%* '
-               \ ..'%='
-               \ ..'%{&l:scb ? "[scb]" : ""}'
-               \ ..'%{&l:diff ? "[diff]" : ""}'
-               \ ..'%{&l:pvw ? "[pvw] "..float2nr(100.0 * line(".")/line("$")).."% " : ""}'
-        else
-            return s:flags.buffer
-               \ ..'%='
-               \ ..s:flags.window
-        endif
-    endfu
-endif
+fu statusline#main() abort
+    if g:statusline_winid != win_getid()
+        let winnr = win_id2win(g:statusline_winid)
+        return ' %1*%{statusline#tail_of_path()}%* '
+           \ ..'%='
+           \ ..'%{&l:scb ? "[scb]" : ""}'
+           \ ..'%{&l:diff ? "[diff]" : ""}'
+           \ ..'%{&l:pvw ? "[pvw]" : ""}'
+           \ ..(getwinvar(winnr, '&pvw', 0) ? '%4p%% ' : '')
+    else
+        return s:flags.buffer
+            \ ..'%='
+            \ ..s:flags.window
+    endif
+endfu
 
 fu statusline#tabline() abort "{{{2
     let s = ''
@@ -739,28 +674,6 @@ endfu
 "       random type, random name
 "}}}
 
-fu s:register_delayed_global_flag(option, priority, time) abort "{{{2
-    let g:{a:option}_is_off = 0
-    exe 'au OptionSet '..a:option..' call s:update_global_flag('..string(a:option)..','..a:time..')'
-    exe printf('au User MyFlags call statusline#hoist(''global'', ''%s'', %d)',
-        \ '%{!&'..a:option..' && get(g:, "'..a:option..'_is_off", 0) ? "[nolz]" : ""}',
-        \ a:priority
-        \ )
-endfu
-
-fu s:update_global_flag(option, time) abort "{{{2
-    if v:option_new == 0 && !g:{a:option}_is_off
-        let s:{a:option}_is_off_timer_id =
-            \ timer_start(a:time, {-> execute(['let g:'..a:option..'_is_off = 1', 'redrawt'])})
-    elseif v:option_new == 1
-        if exists('s:'..a:option..'_is_off_timer_id')
-            call timer_stop(s:{a:option}_is_off_timer_id)
-            unlet! s:{a:option}_is_off_timer_id
-        endif
-        let g:{a:option}_is_off = 0 | redrawt
-    endif
-endfu
-
 fu s:check_option_has_not_been_altered(longopt, shortopt, priority) abort "{{{2
     " save original value of option in a buffer-local variable
     if a:shortopt is# 'isk'
@@ -849,12 +762,8 @@ augroup my_statusline | au!
     au User MyFlags call statusline#hoist('global', '%{&dip =~# "iwhiteall" ? "[dip~iwa]" : ""}', 10)
     " Why an indicator for the 'paste' option?{{{
     "
-    " Atm there's an issue  in Nvim, where `'paste'` may be  wrongly set when we
-    " paste  some text  on the  command-line  with a  trailing literal  carriage
-    " return.
-    "
-    " Anyway, this is  an option which has too many  effects; we need to
-    " be informed immediately whenever it's set.
+    " This is  an option  which has  too many  effects; we  need to  be informed
+    " immediately whenever it's set.
     "}}}
     " When should I highlight a flag with `User2`?{{{
     "
@@ -880,18 +789,11 @@ augroup my_statusline | au!
     "}}}
     au User MyFlags call statusline#hoist('global', '%{!&ws ? "[nows]" : ""}', 30)
 
-    " What does `s:register_delayed_global_flag()` do?{{{
+    " Do *not* try to add a flag for `'lazyredraw'`.{{{
     "
-    " It displays a  flag in the tab line  when an option has been  reset for an
-    " arbitrary amount of time.
-    " This  makes   sure  that  the  flag   is  not  displayed  when   a  custom
-    " mapping/command temporarily resets the option, which would be distracting.
-    "}}}
-    " Why do we need this function for `'lz'` but not for other global options like `'paste'`?{{{
+    " We tried in the past, but it was too tricky.
     "
-    " `'lz'` is special.
-    "
-    " For example, if you replace the line with:
+    " For example, if you try:
     "
     "     au User MyFlags call statusline#hoist('global', '%{!&lz ? "[nolz]" : ""}', 40)
     "
@@ -905,19 +807,10 @@ augroup my_statusline | au!
     " Besides, the `sa` operator  from `vim-sandwich` temporarily resets `'lz'`,
     " and causes the  tab line to be  redrawn (btw, this has nothing  to do with
     " our `:redrawt` which we run from an autocmd).
-    " As  a result,  the `[nolz]`  flag  is displayed  as  long as  you stay  in
+    " As  a result,  the  `[nolz]` flag  is  displayed  as long  as  we stay  in
     " operator-pending mode, which is distracting.
-    " To fix this, we need `&&  state('o') == ''` but `state()` is not available
-    " in Nvim atm.
-    "
-    " ---
-    "
-    " Right now, we have an autocmd in our vimrc to delay setting `'lz'`.
-    " If  we stop  using  `s:register_delayed_global_flag()`,  `[nolz]` will  be
-    " displayed in the tab line when we start Vim, until it's redrawn.
-    " We would need to set `'lz'` right from the start...
+    " To fix this, we need `&&  state('o') == ''`.
     "}}}
-    call s:register_delayed_global_flag('lazyredraw', 40, 5000)
 
     " the lower the priority, the closer to the left end of the status line the flag is
     " Why the arglist at the very start?{{{
@@ -942,7 +835,7 @@ augroup my_statusline | au!
         \ '%2*%{&mod && bufname("%") != "" && &bt !=# "terminal" ? "[+]" : ""}', 50)
     au User MyFlags call statusline#hoist('buffer',
         \   '%{&bt !=# "terminal" || mode() ==# "t" ? ""'
-        \ ..' : !has("nvim") && term_getstatus(bufnr("")) is# "finished" ? "[finished]" : "[n]"}', 60)
+        \ ..' : term_getstatus(bufnr("")) is# "finished" ? "[finished]" : "[n]"}', 60)
     " Warning: Use this function *only* for buffer-local options.
     call s:check_option_has_not_been_altered('autoindent', 'ai', 70)
     call s:check_option_has_not_been_altered('iskeyword', 'isk', 80)
@@ -1035,65 +928,6 @@ augroup my_statusline | au!
     au OptionSet diffopt,paste,wrapscan call timer_start(0, {-> execute('redrawt')})
 
     au CmdWinEnter * let &l:stl = ' %l'
-
-    if has('nvim')
-        " Which alternative to these autocmds could I use?{{{
-        "
-        " You could leverage the fact that `winnr()` evaluates to the number of:
-        "
-        "    - the active window in a `%!` expression
-        "    - the window to which the status line belongs in an `%{}` expression
-        "
-        " The comparison between the two evaluations tells you whether you're in
-        " an active  or inactive  window at  the time  the function  setting the
-        " status line contents is invoked.
-        "
-        " And to  avoid having to re-evaluate  `winnr()` every time you  need to
-        " know whether you're  in an active or inactive window,  you can use the
-        " first `%{}` to set a window variable.
-        "
-        " MWE:
-        "
-        "     $ vim -Nu <(cat <<'EOF'
-        "         " here `winnr()` is the number of the *active* window
-        "         set stl=%!GetStl(winnr())
-        "
-        "         fu GetStl(nr) abort
-        "           return '%{SetStlFlag('..a:nr..')} %{w:is_active ? "active" : "inactive"}'
-        "         endfu
-        "
-        "         fu SetStlFlag(nr) abort
-        "         " here `winnr()` is the number of the window to which the status line belongs
-        "           return get(extend(w:, {'is_active': (winnr() == a:nr)}), '', '')
-        "         endfu
-        "     EOF
-        "     ) +vs
-        "
-        " Source: https://github.com/vim/vim/issues/4406#issuecomment-495496763
-        "}}}
-        "   What is its limitation?{{{
-        "
-        " The  function can  only  know whether  it's called  for  an active  or
-        " inactive  window inside  a  `%{}` expression;  but  inside, you  can't
-        " include a `%w`, `%p`, ...:
-        "
-        "     %{w:is_active ? "" : "%w"}
-        "                           ^^
-        "                           ✘
-        "
-        " As a workaround, you can try to emulate them:
-        "
-        "     %{w:is_active ? "" : (&l:pvw ? "[Preview]" : "")}
-        "
-        " But that's not always easy, and it seems awkward/cumbersome.
-        "}}}
-        au BufWinEnter,WinEnter * setl stl=%!statusline#main(1)
-        au WinLeave             * setl stl=%!statusline#main(0)
-
-        " no `WinEnter` / `BufWinEnter` is fired right after the creation of a `UnicodeTable` buffer
-        au BufDelete UnicodeTable setl stl=%!statusline#main(1)
-            \ | let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')..'| set stl<'
-    endif
 augroup END
 
 " Commands {{{1
