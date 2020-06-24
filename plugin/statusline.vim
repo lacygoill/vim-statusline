@@ -187,17 +187,17 @@ let g:loaded_statusline = 1
 " windows inside a tab page, you would write:
 "
 "     au User MyFlags call statusline#hoist('tabpage', '[%{tabpagewinnr({tabnr}, "$")}]')
-"                                                                       ^^^^^^^
+"                                                                       ^-----^
 "
 " If your expression  is too complex to  fit directly in the  function call, and
 " you  need to  compute the  flag via  another function,  make sure  to pass  it
 " `{tabnr}` as an argument:
-"                                                            vvvvvvv
+"                                                            v-----v
 "     au User MyFlags call statusline#hoist('tabpage', 'Func({tabnr})')
 "     fu Func(tabnr)
-"             ^^^^^
+"             ^---^
 "         " compute the flag using `a:tabnr` to refer to the tab page number
-"                                   ^^^^^^^
+"                                   ^-----^
 "         return '...'
 "     endfu
 
@@ -348,7 +348,7 @@ fu statusline#tabline() abort "{{{2
     " We don't want to see a label for a tab page which is too far away:
     "
     "     if abs(curtab - a:n) > max_dist | return '' | endif
-    "                            ^^^^^^^^
+    "                            ^------^
     "
     " Now, suppose we  want to see 2 labels  on the left and right  of the label
     " currently focused, but not more:
@@ -830,7 +830,7 @@ augroup my_statusline | au!
     " project, then it will become useful, and you should get rid of `0 &&`.
     "}}}
     au User MyFlags call statusline#hoist('buffer',
-        \ '%{0 && exists("*fugitive#statusline") ? fugitive#statusline() : ""}', 40)
+        \ '%{0 && exists("*FugitiveStatusline") ? FugitiveStatusline() : ""}', 40)
     au User MyFlags call statusline#hoist('buffer',
         \ '%2*%{&mod && bufname("%") != "" && &bt !=# "terminal" ? "[+]" : ""}', 50)
     au User MyFlags call statusline#hoist('buffer',
@@ -903,7 +903,7 @@ augroup my_statusline | au!
     " option, try to prefix `:set` with `:noa`:
     "
     "     noa set ve=all
-    "     ^^^
+    "     ^-^
     "
     " ---
     "
