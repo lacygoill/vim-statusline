@@ -846,6 +846,7 @@ augroup my_statusline | au!
     au User MyFlags call statusline#hoist('window', '%{&l:pvw ? "[pvw]" : ""}', 30)
     au User MyFlags call statusline#hoist('window', '%{&l:diff ? "[diff]" : ""}', 40)
     au User MyFlags call statusline#hoist('window', '%{&l:scb ? "[scb]" : ""}', 50)
+    au User MyFlags call statusline#hoist('window', '%{&l:spell ? "[spell]" : ""}', 60)
 
     " TODO: Add a tabpage flag to show whether the focused project is dirty?{{{
     "
