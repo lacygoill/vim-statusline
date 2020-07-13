@@ -980,7 +980,7 @@ fu s:display_flags(scope) abort
     "  │
     "  └ in case the scope does not contain any flag
     sil keepj keepp g/dummy flag 123/d_
-    1d_
+    keepj 1d_
     " highlight flags installed from third-party plugins
     call matchadd('DiffAdd', '.*[1-9]$')
     sil! call fold#adhoc#main()
