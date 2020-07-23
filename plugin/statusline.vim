@@ -287,7 +287,7 @@ set tabline=%!statusline#tabline()
 set stl=%!statusline#main()
 
 " Functions {{{1
-fu statusline#hoist(scope, flag, ...) abort "{{{2
+fu statusline#hoist(scope, flag, priority = 0, source = '') abort "{{{2
     unlockvar! s:flags_db
     if index(s:SCOPES, a:scope) == -1
         throw '[statusline] "'..a:scope..'" is not a valid scope'
@@ -302,8 +302,8 @@ fu statusline#hoist(scope, flag, ...) abort "{{{2
     endif
     let s:flags_db[a:scope] += [{
         \ 'flag': flag,
-        \ 'priority': get(a:, '1', 0),
-        \ 'source': get(a:, '2', ''),
+        \ 'priority': a:priority,
+        \ 'source': a:source,
         \ }]
     lockvar! s:flags_db
 endfu
