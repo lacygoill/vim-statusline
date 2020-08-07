@@ -13,7 +13,7 @@ let g:loaded_statusline = 1
 "     abcdef<xyz~
 "
 " Notice how  the *start* of  the text `ghi...xyz`  has been truncated,  not the
-" end. This is why `<`  was chosen for the item `%<` (and not  `>`), and this is
+" end.  This is why `<` was chosen for  the item `%<` (and not `>`), and this is
 " why `<` is positioned *before* the truncated text.
 "
 " However, if  the text that  comes before  `%<` is too  long, Vim will  have to
@@ -183,7 +183,7 @@ let g:loaded_statusline = 1
 "     au User MyFlags call statusline#hoist('tabpage', '[on]')
 "
 " However, if your flag depends on the tab page in which it's displayed, you may
-" need the special placeholder `{tabnr}`. For  example, to include the number of
+" need the special placeholder `{tabnr}`.  For example, to include the number of
 " windows inside a tab page, you would write:
 "
 "     au User MyFlags call statusline#hoist('tabpage', '[%{tabpagewinnr({tabnr}, "$")}]')
@@ -226,7 +226,7 @@ let g:loaded_statusline = 1
 "
 " ---
 "
-" Don't think about it too much. Tweak the priorities by experimentation.
+" Don't think about it too much.  Tweak the priorities by experimentation.
 " If  the display  of  A often  disturbs  the position  of  B, increase  A's
 " priority so that it's greater than B's priority.
 
@@ -290,7 +290,7 @@ set stl=%!statusline#main()
 fu statusline#hoist(scope, flag, priority = 0, source = '') abort "{{{2
     unlockvar! s:flags_db
     if index(s:SCOPES, a:scope) == -1
-        throw '[statusline] "'..a:scope..'" is not a valid scope'
+        throw '[statusline] "' .. a:scope .. '" is not a valid scope'
     endif
     let flag = a:flag
     let pat = '^%[1-9]\*\|^%#[^#]\+#'
@@ -310,12 +310,12 @@ endfu
 
 fu s:build_flags() abort
     for scope in keys(s:flags)
-        let s:flags[scope] = sort(deepcopy(s:flags_db[scope]),
-            \ {a,b -> a.priority - b.priority})
+        let s:flags[scope] = deepcopy(s:flags_db[scope])
+            \ ->sort({a,b -> a.priority - b.priority})
         if scope is# 'global' || scope is# 'window'
             call reverse(s:flags[scope])
         endif
-       let s:flags[scope] = join(map(s:flags[scope], {_,v -> v.flag}), '')
+       let s:flags[scope] = map(s:flags[scope], {_, v -> v.flag})->join('')
     endfor
     lockvar! s:flags
 endfu
@@ -325,15 +325,15 @@ fu statusline#main() abort
     if g:statusline_winid != win_getid()
         let winnr = win_id2win(g:statusline_winid)
         return ' %1*%{statusline#tail_of_path()}%* '
-           \ ..'%='
-           \ ..'%{&l:scb ? "[scb]" : ""}'
-           \ ..'%{&l:diff ? "[diff]" : ""}'
-           \ ..'%{&l:pvw ? "[pvw]" : ""}'
-           \ ..(getwinvar(winnr, '&pvw', 0) ? '%4p%% ' : '')
+            \ .. '%='
+            \ .. '%{&l:scb ? "[scb]" : ""}'
+            \ .. '%{&l:diff ? "[diff]" : ""}'
+            \ .. '%{&l:pvw ? "[pvw]" : ""}'
+            \ .. (getwinvar(winnr, '&pvw', 0) ? '%4p%% ' : '')
     else
         return s:flags.buffer
-            \ ..'%='
-            \ ..s:flags.window
+            \ .. '%='
+            \ .. s:flags.window
     endif
 endfu
 
@@ -395,11 +395,11 @@ fu statusline#tabline() abort "{{{2
     "    ┌──────────────────────────────────────────┬──────────┐
     "    │              where is focus              │ max_dist │
     "    ├──────────────────────────────────────────┼──────────┤
-    "    │ not on last nor on last but one tab page │ 2+0      │
+    "    │ not on last nor on last but one tab page │ 2 + 0    │
     "    ├──────────────────────────────────────────┼──────────┤
-    "    │ on last but one tab page                 │ 2+1      │
+    "    │ on last but one tab page                 │ 2 + 1    │
     "    ├──────────────────────────────────────────┼──────────┤
-    "    │ on last tab page                         │ 2+2      │
+    "    │ on last tab page                         │ 2 + 2    │
     "    └──────────────────────────────────────────┴──────────┘
     "
     " But what is the expression to get this number?
@@ -453,23 +453,23 @@ fu statusline#tabline() abort "{{{2
     " for 3 labels:{{{
     "
     "     let max_dist =
-    "     \   index([1, lasttab], curtab) != -1 ? 1+1
-    "     \ :                                     1+0
+    "         \   index([1, lasttab], curtab) != -1 ? 1 + 1
+    "         \ :                                     1 + 0
     "}}}
     " for 5 labels:{{{
     "
     "     let max_dist =
-    "     \   index([1, lasttab],   curtab) != -1 ? 2+2
-    "     \ : index([2, lasttab-1], curtab) != -1 ? 2+1
-    "     \ :                                       2+0
+    "         \   index([1, lasttab], curtab) != -1 ? 2 + 2
+    "         \ : index([2, lasttab-1], curtab) != -1 ? 2 + 1
+    "         \ :                                       2 + 0
     "}}}
     " for 7 labels:{{{
     "
     "     let max_dist =
-    "     \   index([1, lasttab],   curtab) != -1 ? 3+3
-    "     \ : index([2, lasttab-1], curtab) != -1 ? 3+2
-    "     \ : index([3, lasttab-2], curtab) != -1 ? 3+1
-    "     \ :                                       3+0
+    "         \   index([1, lasttab], curtab) != -1 ? 3 + 3
+    "         \ : index([2, lasttab-1], curtab) != -1 ? 3 + 2
+    "         \ : index([3, lasttab-2], curtab) != -1 ? 3 + 1
+    "         \ :                                       3 + 0
     "}}}
     "}}}
 
@@ -484,30 +484,30 @@ fu statusline#tabline() abort "{{{2
         " you may want  to comment this line  to reduce the number  of `%` items
         " used in `'tal'` which will increase the limit.
         "}}}
-        let s ..= '%'..i..'T'
+        let s ..= '%' .. i .. 'T'
 
         " set the label
         if abs(curtab - i) > max_dist
             let label = i
         else
-            let label = ' %{statusline#tabpage_label('..i..','..curtab..')} '
+            let label = ' %{statusline#tabpage_label(' .. i .. ',' .. curtab .. ')} '
             let flags = substitute(s:flags.tabpage, '\m\C{tabnr}', i, 'g')
-            if flags isnot# ''
+            if flags != ''
                 let label ..= s:HG_TAL_FLAGS
-                    \ ..flags
-                    \ ..'%#TabLine#'
-                    \ ..(i != curtab ? ' ' : '')
+                    \ .. flags
+                    \ .. '%#TabLine#'
+                    \ .. (i != curtab ? ' ' : '')
             endif
         endif
 
-        let s ..= label..'│'
+        let s ..= label .. '│'
     endfor
 
     " color the rest of the line with `TabLineFill` (until the flags), and reset tab page nr (`%T`)
     let s ..= '%#TabLineFill#%T'
 
     " append global flags on the right of the tab line
-    let s ..= '%='..s:HG_TAL_FLAGS..s:flags.global
+    let s ..= '%=' .. s:HG_TAL_FLAGS .. s:flags.global
 
     " If you want to get a closing label, try this:{{{
     "
@@ -550,14 +550,14 @@ endfu
 
 fu statusline#tabpage_label(n, curtab) abort "{{{2
     let winnr = tabpagewinnr(a:n)
-    let bufnr = winbufnr(win_getid(winnr, a:n))
+    let bufnr = win_getid(winnr, a:n)->winbufnr()
     let bufname = bufname(bufnr)
-    if bufname isnot# ''
+    if bufname != ''
         let bufname = fnamemodify(bufname, ':p')
     endif
 
     " don't display anything in the label of the current tab page if we focus a special buffer
-    if a:n == a:curtab && &bt isnot# ''
+    if a:n == a:curtab && &bt != ''
         let label = ''
     " Display the cwd iff:{{{
     "
@@ -572,9 +572,9 @@ fu statusline#tabpage_label(n, curtab) abort "{{{2
     "        - it's complete in the status line
     "}}}
     " `b:root_dir` is set by `vim-cwd`
-    elseif bufname isnot# '' && (a:n == a:curtab || getbufvar(bufnr, 'root_dir', '') isnot# '')
+    elseif bufname != '' && (a:n == a:curtab || getbufvar(bufnr, 'root_dir', '') != '')
         let cwd = getcwd(winnr, a:n)
-        let cwd = pathshorten(substitute(cwd, '^\V'..escape($HOME, '\')..'/', '', ''))
+        let cwd = substitute(cwd, '^\V' .. escape($HOME, '\') .. '/', '', '')->pathshorten()
         " append a slash to avoid confusion with a buffer name
         if cwd !~# '/' | let cwd ..= '/' | endif
         let label = cwd
@@ -610,8 +610,8 @@ fu statusline#tabpage_label(n, curtab) abort "{{{2
     "}}}
     if a:n != a:curtab | return label | endif
     let len = strlen(label)
-    let cnt = (s:TABLABEL_MAXSIZE - len)/2
-    return repeat(' ', cnt)..label..repeat(' ', cnt+len%2)
+    let cnt = (s:TABLABEL_MAXSIZE - len) / 2
+    return repeat(' ', cnt) .. label .. repeat(' ', cnt + len % 2)
 endfu
 
 fu statusline#tabpagewinnr(tabnr) abort "{{{2
@@ -622,30 +622,30 @@ fu statusline#tabpagewinnr(tabnr) abort "{{{2
     "    - the current tab page
     "    - another tab page if it only contains 1 window
     "}}}
-    return tabpagenr() == a:tabnr || last_winnr == 1 ? '' : '['..last_winnr..']'
+    return tabpagenr() == a:tabnr || last_winnr == 1 ? '' : '[' .. last_winnr .. ']'
 endfu
 
 fu statusline#tail_of_path() abort "{{{2
     let tail = fnamemodify(@%, ':t')
 
     return &bt is# 'terminal'
-       \ ?     '[term]'
-       \ : tail is# ''
-       \ ?     (&bt is# 'nofile' ? '[Scratch]' : '[No Name]')
-       \ :     tail
+        \ ?     '[term]'
+        \ : tail == ''
+        \ ?     (&bt is# 'nofile' ? '[Scratch]' : '[No Name]')
+        \ :     tail
 endfu
 " The following comment is kept for educational purpose, but no longer relevant.{{{
-" It applied to a different expression than the one currently used. Sth like:
+" It applied to a different expression than the one currently used.  Sth like:
 "
-"     return &bt  isnot#  'terminal'
-"        \ ? &ft  isnot#  'dirvish'
-"        \ ? &bt  isnot#  'quickfix'
-"        \ ? tail isnot# ''
-"        \ ?     tail
-"        \ :     '[No Name]'
-"        \ :     b:qf_is_loclist ? '[LL]' : '[QF]'
-"        \ :     '[dirvish]'
-"        \ :     '[term]'
+"     return &bt isnot# 'terminal'
+"         \ ? &ft isnot# 'dirvish'
+"         \ ? &bt isnot# 'quickfix'
+"         \ ? tail != ''
+"         \ ?     tail
+"         \ :     '[No Name]'
+"         \ :     b:qf_is_loclist ? '[LL]' : '[QF]'
+"         \ :     '[dirvish]'
+"         \ :     '[term]'
 "}}}
 " How to read the returned expression:{{{
 "
@@ -653,11 +653,11 @@ endfu
 "
 "      Example:
 "
-"         1st test    =    &bt isnot# 'terminal'
-"         last value  =    [term]
+"         1st test = &bt isnot# 'terminal'
+"         last value = [term]
 "
-"         2nd test           =    &filetype isnot# 'dirvish'
-"         penultimate value  =    [dirvish]
+"         2nd test = &filetype isnot# 'dirvish'
+"         penultimate value = [dirvish]
 "
 "         ...
 "
@@ -712,7 +712,7 @@ fu s:check_option_has_not_been_altered(longopt, shortopt, priority) abort "{{{2
         "}}}
         au save_original_options BufNewFile,BufReadPost,FileType * if &ft isnot# 'help'
             \ |     let b:orig_iskeyword = &l:isk
-            \ |     let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')..'|unlet! b:orig_iskeyword'
+            \ |     let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') .. '|unlet! b:orig_iskeyword'
             \ | endif
     else
         " Why must I use the long name of an option in `b:orig_...`?{{{
@@ -726,7 +726,7 @@ fu s:check_option_has_not_been_altered(longopt, shortopt, priority) abort "{{{2
         " To make the code simpler in `debug#verbose#option()`, we need to normalize
         " this name; we do so with this kind of expression:
         "
-        "     :echo matchstr(execute('set isk?'), '[a-z]\+')
+        "     :echo execute('set isk?')->matchstr('[a-z]\+')
         "     iskeyword~
         "
         " Because  of this  normalization, the  rest of  the function  refers to  an
@@ -737,12 +737,12 @@ fu s:check_option_has_not_been_altered(longopt, shortopt, priority) abort "{{{2
         "}}}
         exe printf('au save_original_options BufNewFile,BufReadPost,FileType * '
             \ .. 'let b:orig_%s = &l:%s'
-            \ ..'|let b:undo_ftplugin = get(b:, "undo_ftplugin", "exe").."|unlet! b:orig_%s"',
+            \ .. '|let b:undo_ftplugin = get(b:, "undo_ftplugin", "exe") .. "|unlet! b:orig_%s"',
             \ a:longopt, a:longopt, a:longopt)
     endif
     " install a flag whose purpose is to warn us whenever the value of the option is altered
     exe printf('au User MyFlags call statusline#hoist('
-        \ ..'"buffer", ''%%2*%%{&l:%s isnot# get(b:, "orig_%s", &l:%s) ? "[%s+]" : ""}'', %d)',
+        \ .. '"buffer", ''%%2*%%{&l:%s isnot# get(b:, "orig_%s", &l:%s) ? "[%s+]" : ""}'', %d)',
         \ a:shortopt, a:longopt, a:shortopt, a:shortopt, a:priority)
 endfu
 augroup save_original_options
@@ -755,8 +755,8 @@ augroup my_statusline | au!
 
     " get flags (including the ones from third-party plugins)
     au VimEnter * if exists('#User#MyFlags')
-        \ | do <nomodeline> User MyFlags
-        \ | call s:build_flags()
+        \ |     do <nomodeline> User MyFlags
+        \ |     call s:build_flags()
         \ | endif
 
     au User MyFlags call statusline#hoist('global', '%{&dip =~# "iwhiteall" ? "[dip~iwa]" : ""}', 10)
@@ -835,7 +835,7 @@ augroup my_statusline | au!
         \ '%2*%{&mod && bufname("%") != "" && &bt !=# "terminal" ? "[+]" : ""}', 50)
     au User MyFlags call statusline#hoist('buffer',
         \   '%{&bt !=# "terminal" || mode() ==# "t" ? ""'
-        \ ..' : term_getstatus(bufnr("")) is# "finished" ? "[finished]" : "[n]"}', 60)
+        \ .. ' : bufnr("")->term_getstatus() is# "finished" ? "[finished]" : "[n]"}', 60)
     " Warning: Use this function *only* for buffer-local options.
     call s:check_option_has_not_been_altered('autoindent', 'ai', 70)
     call s:check_option_has_not_been_altered('iskeyword', 'isk', 80)
@@ -940,13 +940,14 @@ fu s:complete(_a, _l, _p) abort
 endfu
 
 fu s:display_flags(scope) abort
-    let scopes = a:scope is# '' ? s:SCOPES : [a:scope]
+    let scopes = a:scope == '' ? s:SCOPES : [a:scope]
     let lines = []
     for scope in scopes
         " underline each `scope ...` line with a `---` line
-        let lines += ['', 'scope '..scope, substitute('scope '..scope, '.', '-', 'g'), '']
-        let lines += map(deepcopy(s:flags_db[scope]),
-            \ {_,v -> substitute(v.flag, '\s\+$', '\=repeat("█", strlen(submatch(0)))', '') .."\x01".. v.priority})
+        let lines += ['', 'scope ' .. scope, substitute('scope ' .. scope, '.', '-', 'g'), '']
+        let lines += deepcopy(s:flags_db[scope])
+            \ ->map({_, v -> substitute(v.flag,
+            \     '\s\+$', '\=repeat("\u2588", submatch(0)->strlen())', '') .. "\x01" .. v.priority})
         " `substitute()` makes visible a trailing whitespace in a flag
 
         " Purpose:{{{
@@ -967,16 +968,16 @@ fu s:display_flags(scope) abort
             let lines += ['dummy flag 123']
         endif
     endfor
-    exe 'pedit '..tempname()
+    exe 'pedit ' .. tempname()
     wincmd P
     if !&pvw | return | endif
     setl bt=nofile nobl noswf nowrap
     call append(0, lines)
     let range = '/^---//\d\+$/ ; /\d\+$//^\s*$\|\%$/-'
     " align priorities in a column
-    sil keepj keepp g/^---/exe range.."!column -t -s\x01"
+    sil keepj keepp g/^---/exe range .. "!column -t -s\x01"
     " for each scope, sort the flags according to their priority
-    sil! keepj keepp g/^---/exe range..'sort /.\{-}\ze\d\+$/ n'
+    sil! keepj keepp g/^---/exe range .. 'sort /.\{-}\ze\d\+$/ n'
     "  │
     "  └ in case the scope does not contain any flag
     sil keepj keepp g/dummy flag 123/d_
@@ -991,10 +992,12 @@ fu s:display_flags(scope) abort
 endfu
 
 fu s:get_source_file() abort
-    let scope = matchstr(getline(search('^scope', 'bnW')), '^scope \zs\w\+')
-    let priority_under_cursor = matchstr(getline('.'), '\d\+$')
-    let source = get(get(filter(deepcopy(s:flags_db[scope]),
-        \ {_,v -> v.priority == priority_under_cursor}), 0, {}), 'source', '')
+    let scope = search('^scope', 'bnW')->getline()->matchstr('^scope \zs\w\+')
+    let priority_under_cursor = getline('.')->matchstr('\d\+$')
+    let source = deepcopy(s:flags_db[scope])
+        \ ->filter({_, v -> v.priority == priority_under_cursor})
+        \ ->get(0, {})
+        \ ->get('source', '')
     return source
 endfu
 
@@ -1002,7 +1005,7 @@ fu s:open_source_file() abort
     let source = s:get_source_file()
     if empty(source) | return | endif
     let [file, lnum] = matchlist(source, '\(.*\):\(\d\+\)')[1:2]
-    exe 'sp +'..lnum..' '..file
+    exe 'sp +' .. lnum .. ' ' .. file
     norm! zv
 endfu
 
