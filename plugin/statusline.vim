@@ -983,7 +983,7 @@ fu s:display_flags(scope) abort
     sil keepj keepp g/dummy flag 123/d_
     keepj 1d_
     " highlight flags installed from third-party plugins
-    call matchadd('DiffAdd', '.*[1-9]$')
+    call matchadd('DiffAdd', '.*[1-9]$', 0)
     sil! call fold#adhoc#main()
     sil! call toggle_settings#auto_open_fold(1)
     nmap <buffer><nowait><silent> q <plug>(my_quit)
