@@ -626,7 +626,7 @@ fu statusline#tabpagewinnr(tabnr) abort "{{{2
 endfu
 
 fu statusline#tail_of_path() abort "{{{2
-    let tail = fnamemodify(@%, ':t')
+    let tail = fnamemodify(@%, ':t')->strtrans()
 
     return &bt is# 'terminal'
         \ ?     '[term]'
@@ -986,9 +986,9 @@ fu s:display_flags(scope) abort
     call matchadd('DiffAdd', '.*[1-9]$', 0)
     sil! call fold#adhoc#main()
     sil! call toggle_settings#auto_open_fold(1)
-    nmap <buffer><nowait><silent> q <plug>(my_quit)
-    nmap <buffer><nowait><silent> <cr> :<c-u>echo <sid>get_source_file()<cr>
-    nmap <buffer><nowait><silent> <c-w>F :<c-u>call <sid>open_source_file()<cr>
+    nmap <buffer><nowait> q <plug>(my_quit)
+    nmap <buffer><nowait> <cr> <cmd>echo <sid>get_source_file()<cr>
+    nmap <buffer><nowait> <c-w>F <cmd>call <sid>open_source_file()<cr>
 endfu
 
 fu s:get_source_file() abort
