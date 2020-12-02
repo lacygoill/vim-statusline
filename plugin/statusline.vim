@@ -945,9 +945,12 @@ fu s:display_flags(scope) abort
     for scope in scopes
         " underline each `scope ...` line with a `---` line
         let lines += ['', 'scope ' .. scope, substitute('scope ' .. scope, '.', '-', 'g'), '']
-        let lines += deepcopy(s:flags_db[scope])
-            \ ->map({_, v -> substitute(v.flag,
-            \     '\s\+$', '\=repeat("\u2588", submatch(0)->strlen())', '') .. "\x01" .. v.priority})
+        let lines += mapnew(s:flags_db[scope],
+            \ {_, v -> substitute(v.flag,
+            \     '\s\+$',
+            \     '\=repeat("\u2588", submatch(0)->strlen())',
+            \     '')
+            \ .. "\x01" .. v.priority})
         " `substitute()` makes visible a trailing whitespace in a flag
 
         " Purpose:{{{
