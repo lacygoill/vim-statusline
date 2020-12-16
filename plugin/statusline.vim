@@ -710,7 +710,7 @@ fu s:check_option_has_not_been_altered(longopt, shortopt, priority) abort "{{{2
         " And out  of those, it's the  only one in  which we are interested  to know
         " whether a script has altered its value.
         "}}}
-        au save_original_options BufNewFile,BufReadPost,FileType * if &ft isnot# 'help'
+        au SaveOriginalOptions BufNewFile,BufReadPost,FileType * if &ft isnot# 'help'
             \ |     let b:orig_iskeyword = &l:isk
             \ |     let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') .. '|unlet! b:orig_iskeyword'
             \ | endif
@@ -735,7 +735,7 @@ fu s:check_option_has_not_been_altered(longopt, shortopt, priority) abort "{{{2
         " `b:orig_longopt`; for  it to work, we  need to create variable  names with
         " long option names.
         "}}}
-        exe printf('au save_original_options BufNewFile,BufReadPost,FileType * '
+        exe printf('au SaveOriginalOptions BufNewFile,BufReadPost,FileType * '
             \ .. 'let b:orig_%s = &l:%s'
             \ .. '|let b:undo_ftplugin = get(b:, "undo_ftplugin", "exe") .. "|unlet! b:orig_%s"',
             \ a:longopt, a:longopt, a:longopt)
@@ -745,13 +745,13 @@ fu s:check_option_has_not_been_altered(longopt, shortopt, priority) abort "{{{2
         \ .. '"buffer", ''%%2*%%{&l:%s !=# get(b:, "orig_%s", &l:%s) ? "[%s+]" : ""}'', %d)',
         \ a:shortopt, a:longopt, a:shortopt, a:shortopt, a:priority)
 endfu
-augroup save_original_options
+augroup SaveOriginalOptions
     au!
 augroup END
 "}}}1
 " Autocmds {{{1
 
-augroup my_statusline | au!
+augroup MyStatusline | au!
 
     " get flags (including the ones from third-party plugins)
     au VimEnter * if exists('#User#MyFlags')
