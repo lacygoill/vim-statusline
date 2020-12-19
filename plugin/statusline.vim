@@ -745,8 +745,7 @@ fu s:check_option_has_not_been_altered(longopt, shortopt, priority) abort "{{{2
         \ .. '"buffer", ''%%2*%%{&l:%s !=# get(b:, "orig_%s", &l:%s) ? "[%s+]" : ""}'', %d)',
         \ a:shortopt, a:longopt, a:shortopt, a:shortopt, a:priority)
 endfu
-augroup SaveOriginalOptions
-    au!
+augroup SaveOriginalOptions | au!
 augroup END
 "}}}1
 " Autocmds {{{1
