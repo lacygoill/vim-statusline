@@ -1,9 +1,7 @@
-vim9script
+vim9script noclear
 
-if exists('g:loaded_statusline')
-    finish
-endif
-g:loaded_statusline = 1
+if exists('loaded') | finish | endif
+var loaded = true
 
 # FAQ {{{1
 # What's the meaning of ...?{{{2
@@ -272,8 +270,8 @@ const MAX_TABLABELS = 1
 const HG_TAL_FLAGS = '%#StatusLineTermNC#'
 
 const SCOPES = ['global', 'tabpage', 'buffer', 'window']
-var flags_db = {'global': [], 'tabpage': [], 'buffer': [], 'window': []}
-var flags = {'global': '', 'tabpage': '', 'buffer': '', 'window': ''}
+var flags_db = {global: [], tabpage: [], buffer: [], window: []}
+var flags = {global: '', tabpage: '', buffer: '', window: ''}
 
 # Options {{{1
 
@@ -721,9 +719,9 @@ def CheckOptionHasNotBeenAltered(longopt: string, shortopt: string, priority: nu
         # whether a script has altered its value.
         #}}}
         au SaveOriginalOptions BufNewFile,BufReadPost,FileType * if &ft != 'help'
-            \ |     b:orig_iskeyword = &l:isk
-            \ |     b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') .. '|unlet! b:orig_iskeyword'
-            \ | endif
+            |     b:orig_iskeyword = &l:isk
+            |     b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') .. '|unlet! b:orig_iskeyword'
+            | endif
     else
         # Why must I use the long name of an option in `b:orig_...`?{{{
         #
@@ -764,9 +762,9 @@ augroup MyStatusline | au!
 
     # get flags (including the ones from third-party plugins)
     au VimEnter * if exists('#User#MyFlags')
-        \ |     do <nomodeline> User MyFlags
-        \ |     BuildFlags()
-        \ | endif
+        |     do <nomodeline> User MyFlags
+        |     BuildFlags()
+        | endif
 
     au User MyFlags statusline#hoist('global', '%{&dip =~# "iwhiteall" ? "[dip~iwa]" : ""}', 10)
     # Why an indicator for the 'paste' option?{{{
@@ -935,7 +933,7 @@ augroup MyStatusline | au!
     # Try to include a good and simple MWE to convince the devs that it would be
     # a worthy change.
     #}}}
-    au OptionSet diffopt,paste,wrapscan timer_start(0, {-> execute('redrawt')})
+    au OptionSet diffopt,paste,wrapscan timer_start(0, () => execute('redrawt'))
 
     au CmdWinEnter * &l:stl = ' %l'
 augroup END
@@ -954,13 +952,13 @@ def DisplayFlags(ascope: string)
     for scope in scopes
         # underline each `scope ...` line with a `---` line
         lines += ['', 'scope ' .. scope, substitute('scope ' .. scope, '.', '-', 'g'), '']
-        lines += mapnew(flags_db[scope], {_, v -> substitute(
+        lines += mapnew(flags_db[scope], (_, v) => substitute(
             v.flag,
             '\s\+$',
             '\=repeat("\u2588", submatch(0)->strlen())',
             ''
             ) .. "\x01" .. v.priority
-        })
+        )
         # `substitute()` makes visible a trailing whitespace in a flag
 
         # Purpose:{{{
@@ -1010,7 +1008,7 @@ def GetSourceFile(): string
         ->matchstr('^scope \zs\w\+')
     var priority_under_cursor = getline('.')->matchstr('\d\+$')->str2nr()
     var source = deepcopy(flags_db[scope])
-        ->filter({_, v -> v.priority == priority_under_cursor})
+        ->filter((_, v) => v.priority == priority_under_cursor)
         ->get(0, {})
         ->get('source', '')
     return source
@@ -1023,7 +1021,7 @@ def OpenSourceFile()
     endif
     var file: string
     var lnum: string
-    [file, lnum] = matchlist(source, '\(.*\):\(\d\+\)')[1:2]
+    [file, lnum] = matchlist(source, '\(.*\):\(\d\+\)')[1 : 2]
     exe 'sp +' .. lnum .. ' ' .. file
     norm! zv
 enddef
