@@ -601,7 +601,7 @@ def statusline#tabpage_label(n: number, curtab: number): string #{{{2
     # Yes, we should write sth like:
     #
     #     label = matchstr(label, repeat('.', '10'))
-    #     len = strchars(label, 1)
+    #     len = strchars(label, true)
     #
     # But I'm concerned about the impact on Vim's performance.
     # I don't know how often this function is evaluated.
@@ -795,6 +795,29 @@ augroup MyStatusline | au!
     # clue to check whether the option is indeed reset.
     #}}}
     au User MyFlags statusline#hoist('global', '%{!&ws ? "[nows]" : ""}', 30)
+    # `'cpo'` is fundamental.  We should be warned as soon as it gets altered.{{{
+    #
+    # To illustrate how subtly confusing things can get when `'cpo'` is altered,
+    # here is an issue which we had in the past.
+    #
+    # Sometimes, in a dirvish buffer, the `/` and `?` mappings got broken.
+    # That's because `'cpo'` was wrongly cleared:
+    # https://github.com/vim/vim/issues/7608
+    #
+    # And without the `B` flag, mappings whose rhs contain a backslash got broken:
+    #
+    #     " ~/.vim/plugged/vim-dirvish/ftplugin/dirvish.vim
+    #     nnoremap <buffer> / /\ze[^/]*[/]\=$<Home>
+    #                          ^          ^
+    #                          lost without 'B' in 'cpo'
+    #
+    # If that happens again, we want to be warned immediately.
+    #}}}
+    au User MyFlags statusline#hoist('global', '%2*%{' .. expand('<SID>') .. 'CpoFlag()}', 40)
+    au VimEnter * var cpo_save = split(&cpo, '\zs')->sort()
+    :def CpoFlag(): string
+        return split(&cpo, '\zs')->sort() != cpo_save ? '[cpo]' : ''
+    enddef
 
     # Do *not* try to add a flag for `'lazyredraw'`.{{{
     #
