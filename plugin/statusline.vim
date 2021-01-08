@@ -1,4 +1,4 @@
-vim9script noclear
+vim9 noclear
 
 if exists('loaded') | finish | endif
 var loaded = true
@@ -323,7 +323,7 @@ endfu
 # statusline {{{2
 def statusline#main(): string
     if g:statusline_winid != win_getid()
-        return ' %1*%{statusline#tail_of_path()}%* '
+        return ' %1*%{statusline#tailOfPath()}%* '
             .. '%='
             .. '%{&l:scb ? "[scb]" : ""}'
             .. '%{&l:diff ? "[diff]" : ""}'
@@ -633,7 +633,7 @@ def statusline#tabpagewinnr(tabnr: number): string #{{{2
     return tabpagenr() == tabnr || last_winnr == 1 ? '' : '[' .. last_winnr .. ']'
 enddef
 
-def statusline#tail_of_path(): string #{{{2
+def statusline#tailOfPath(): string #{{{2
     var tail = fnamemodify(@%, ':t')->strtrans()
 
     return &bt == 'terminal'
@@ -755,210 +755,237 @@ def CheckOptionHasNotBeenAltered(longopt: string, shortopt: string, priority: nu
 enddef
 augroup SaveOriginalOptions | au!
 augroup END
+
+def CpoFlag(): string #{{{2
+    return split(&cpo, '\zs')->sort() != cpo_save ? '[cpo]' : ''
+enddef
+au VimEnter * var cpo_save = split(&cpo, '\zs')->sort()
+
+def CotFlag(): string #{{{2
+    return mode(1) == 'n' && split(&cot, ',')->sort() != cot_save ? '[cot]' : ''
+enddef
+au VimEnter * var cot_save = split(&cot, ',')->sort()
+
+def FixOptions() #{{{2
+    var options_to_fix: list<string>
+    var did_fix_options = false
+    if cpo_save != &cpo->split('\zs')->sort()
+        &cpo = cpo_save->join('')
+        did_fix_options = true
+    endif
+    if cot_save != &cot->split(',')->sort()
+        &cot = cot_save->join(',')
+        did_fix_options = true
+    endif
+    if get(b:, 'orig_iskeyword', &l:isk) != &l:isk
+        &l:isk = b:orig_iskeyword
+        did_fix_options = true
+    endif
+    if !did_fix_options
+        echo 'could not find any option which needs to be fixed'
+    endif
+enddef
 #}}}1
 # Autocmds {{{1
 
 augroup MyStatusline | au!
 
-    # get flags (including the ones from third-party plugins)
-    au VimEnter * if exists('#User#MyFlags')
-        |     do <nomodeline> User MyFlags
-        |     BuildFlags()
-        | endif
+# get flags (including the ones from third-party plugins)
+au VimEnter * if exists('#User#MyFlags')
+    |     do <nomodeline> User MyFlags
+    |     BuildFlags()
+    | endif
 
-    au User MyFlags statusline#hoist('global', '%{&dip =~# "iwhiteall" ? "[dip~iwa]" : ""}', 10)
-    # Why an indicator for the 'paste' option?{{{
-    #
-    # This is  an option  which has  too many  effects; we  need to  be informed
-    # immediately whenever it's set.
-    #}}}
-    # When should I highlight a flag with `User2`?{{{
-    #
-    # When there is  no chance in hell  you've *manually* set the  option with a
-    # value you don't want.
-    #
-    # E.g., we never tweak `'ic'` manually and  we don't want it to be reset; so
-    # if it *is* reset we should be informed that it's broken; it probably means
-    # that some plugin is badly written or has a bug which sometimes prevents it
-    # to restore the option value after a temporary reset.
-    #
-    # OTOH, we  may sometimes tweak `'ve'`  (e.g. with `cov` mapping),  so if it
-    # doesn't have its original default  value, it doesn't necessarily mean that
-    # something is wrong; and it doesn't warrant a special highlighting.
-    #}}}
-    au User MyFlags statusline#hoist('global', '%2*%{&paste ? "[paste]" : ""}', 20)
-    # Why an indicator for the 'wrapscan' option?{{{
-    #
-    # You'll probably need  to temporarily reset it while  replaying a recursive
-    # macro; otherwise, it could be stuck in an infinite loop.
-    # We currently have a mapping to toggle  the option, but we need some visual
-    # clue to check whether the option is indeed reset.
-    #}}}
-    au User MyFlags statusline#hoist('global', '%{!&ws ? "[nows]" : ""}', 30)
-    # `'cpo'` is fundamental.  We should be warned as soon as it gets altered.{{{
-    #
-    # To illustrate how subtly confusing things can get when `'cpo'` is altered,
-    # here is an issue which we had in the past.
-    #
-    # Sometimes, in a dirvish buffer, the `/` and `?` mappings got broken.
-    # That's because `'cpo'` was wrongly cleared:
-    # https://github.com/vim/vim/issues/7608
-    #
-    # And without the `B` flag, mappings whose rhs contain a backslash got broken:
-    #
-    #     " ~/.vim/plugged/vim-dirvish/ftplugin/dirvish.vim
-    #     nnoremap <buffer> / /\ze[^/]*[/]\=$<Home>
-    #                          ^          ^
-    #                          lost without 'B' in 'cpo'
-    #
-    # If that happens again, we want to be warned immediately.
-    #}}}
-    au User MyFlags statusline#hoist('global', '%2*%{' .. expand('<SID>') .. 'CpoFlag()}', 40)
-    au VimEnter * var cpo_save = split(&cpo, '\zs')->sort()
-    :def CpoFlag(): string
-        return split(&cpo, '\zs')->sort() != cpo_save ? '[cpo]' : ''
-    enddef
+au User MyFlags statusline#hoist('global', '%{&dip =~# "iwhiteall" ? "[dip~iwa]" : ""}', 10)
+# Why an indicator for the 'paste' option?{{{
+#
+# This is  an option  which has  too many  effects; we  need to  be informed
+# immediately whenever it's set.
+#}}}
+# When should I highlight a flag with `User2`?{{{
+#
+# When there is  no chance in hell  you've *manually* set the  option with a
+# value you don't want.
+#
+# E.g., we never tweak `'ic'` manually and  we don't want it to be reset; so
+# if it *is* reset we should be informed that it's broken; it probably means
+# that some plugin is badly written or has a bug which sometimes prevents it
+# to restore the option value after a temporary reset.
+#
+# OTOH, we  may sometimes tweak `'ve'`  (e.g. with `cov` mapping),  so if it
+# doesn't have its original default  value, it doesn't necessarily mean that
+# something is wrong; and it doesn't warrant a special highlighting.
+#}}}
+au User MyFlags statusline#hoist('global', '%2*%{&paste ? "[paste]" : ""}', 20)
+# Why an indicator for the 'wrapscan' option?{{{
+#
+# You'll probably need  to temporarily reset it while  replaying a recursive
+# macro; otherwise, it could be stuck in an infinite loop.
+# We currently have a mapping to toggle  the option, but we need some visual
+# clue to check whether the option is indeed reset.
+#}}}
+au User MyFlags statusline#hoist('global', '%{!&ws ? "[nows]" : ""}', 30)
+au User MyFlags statusline#hoist('global', '%2*%{' .. expand('<SID>') .. 'CotFlag()}', 40)
+# `'cpo'` is fundamental.  We should be warned as soon as it gets altered.{{{
+#
+# To illustrate how subtly confusing things can get when `'cpo'` is altered,
+# here is an issue which we had in the past.
+#
+# Sometimes, in a dirvish buffer, the `/` and `?` mappings got broken.
+# That's because `'cpo'` was wrongly cleared:
+# https://github.com/vim/vim/issues/7608
+#
+# And without the `B` flag, mappings whose rhs contain a backslash got broken:
+#
+#     " ~/.vim/plugged/vim-dirvish/ftplugin/dirvish.vim
+#     nnoremap <buffer> / /\ze[^/]*[/]\=$<Home>
+#                          ^          ^
+#                          lost without 'B' in 'cpo'
+#
+# If that happens again, we want to be warned immediately.
+#}}}
+au User MyFlags statusline#hoist('global', '%2*%{' .. expand('<SID>') .. 'CpoFlag()}', 50)
 
-    # Do *not* try to add a flag for `'lazyredraw'`.{{{
-    #
-    # We tried in the past, but it was too tricky.
-    #
-    # For example, if you try:
-    #
-    #     au User MyFlags statusline#hoist('global', '%{!&lz ? "[nolz]" : ""}', 40)
-    #
-    # Then execute `:redrawt`: the `[nolz]` flag is displayed in the tab line.
-    # I think that when `:redrawt` is run, Vim resets the option temporarily.
-    # Anyway, because of this, the flag could also be displayed when our autocmd
-    # running `:redrawt` is triggered.
-    #
-    # ---
-    #
-    # Besides, the `sa` operator  from `vim-sandwich` temporarily resets `'lz'`,
-    # and causes the  tab line to be  redrawn (btw, this has nothing  to do with
-    # our `:redrawt` which we run from an autocmd).
-    # As  a result,  the  `[nolz]` flag  is  displayed  as long  as  we stay  in
-    # operator-pending mode, which is distracting.
-    # To fix this, we need `&&  state('o') == ''`.
-    #}}}
+# Do *not* try to add a flag for `'lazyredraw'`.{{{
+#
+# We tried in the past, but it was too tricky.
+#
+# For example, if you try:
+#
+#     au User MyFlags statusline#hoist('global', '%{!&lz ? "[nolz]" : ""}', 40)
+#
+# Then execute `:redrawt`: the `[nolz]` flag is displayed in the tab line.
+# I think that when `:redrawt` is run, Vim resets the option temporarily.
+# Anyway, because of this, the flag could also be displayed when our autocmd
+# running `:redrawt` is triggered.
+#
+# ---
+#
+# Besides, the `sa` operator  from `vim-sandwich` temporarily resets `'lz'`,
+# and causes the  tab line to be  redrawn (btw, this has nothing  to do with
+# our `:redrawt` which we run from an autocmd).
+# As  a result,  the  `[nolz]` flag  is  displayed  as long  as  we stay  in
+# operator-pending mode, which is distracting.
+# To fix this, we need `&&  state('o') == ''`.
+#}}}
 
-    # the lower the priority, the closer to the left end of the status line the flag is
-    # Why the arglist at the very start?{{{
-    #
-    # So that the index is always in the same position.
-    # Otherwise, when you traverse the arglist, the index position changes every
-    # time the length of the filename  also changes; this is jarring when you're
-    # traversing fast and you're looking for a particular index.
-    #}}}
-    au User MyFlags statusline#hoist('buffer', '%a', 10)
-    au User MyFlags statusline#hoist('buffer', ' %1*%{statusline#tail_of_path()}%* ', 20)
-    au User MyFlags statusline#hoist('buffer', '%r', 30)
-    # Why do you disable the git branch flag with `0 &&`?{{{
-    #
-    # We're always working on a master branch, so this flag is not useful at the moment.
-    # When  we'll start  to  regularly  work on  different  branches  of a  same
-    # project, then it will become useful, and you should get rid of `0 &&`.
-    #}}}
-    au User MyFlags statusline#hoist('buffer',
-        \ '%{0 && exists("*FugitiveStatusline") ? FugitiveStatusline() : ""}', 40)
-    au User MyFlags statusline#hoist('buffer',
-        \ '%2*%{&mod && bufname("%") != "" && &bt !=# "terminal" ? "[+]" : ""}', 50)
-    au User MyFlags statusline#hoist('buffer',
-        \   '%{&bt !=# "terminal" || mode() ==# "t" ? ""'
-        \ .. ' : bufnr("")->term_getstatus() ==# "finished" ? "[finished]" : "[n]"}', 60)
-    # Warning: Use this function *only* for buffer-local options.
-    CheckOptionHasNotBeenAltered('autoindent', 'ai', 70)
-    CheckOptionHasNotBeenAltered('iskeyword', 'isk', 80)
+# the lower the priority, the closer to the left end of the status line the flag is
+# Why the arglist at the very start?{{{
+#
+# So that the index is always in the same position.
+# Otherwise, when you traverse the arglist, the index position changes every
+# time the length of the filename  also changes; this is jarring when you're
+# traversing fast and you're looking for a particular index.
+#}}}
+au User MyFlags statusline#hoist('buffer', '%a', 10)
+au User MyFlags statusline#hoist('buffer', ' %1*%{statusline#tailOfPath()}%* ', 20)
+au User MyFlags statusline#hoist('buffer', '%r', 30)
+# Why do you disable the git branch flag with `0 &&`?{{{
+#
+# We're always working on a master branch, so this flag is not useful at the moment.
+# When  we'll start  to  regularly  work on  different  branches  of a  same
+# project, then it will become useful, and you should get rid of `0 &&`.
+#}}}
+au User MyFlags statusline#hoist('buffer',
+    \ '%{0 && exists("*FugitiveStatusline") ? FugitiveStatusline() : ""}', 40)
+au User MyFlags statusline#hoist('buffer',
+    \ '%2*%{&mod && bufname("%") != "" && &bt !=# "terminal" ? "[+]" : ""}', 50)
+au User MyFlags statusline#hoist('buffer',
+    \   '%{&bt !=# "terminal" || mode() ==# "t" ? ""'
+    \ .. ' : bufnr("")->term_getstatus() ==# "finished" ? "[finished]" : "[n]"}', 60)
+# Warning: Use this function *only* for buffer-local options.
+CheckOptionHasNotBeenAltered('autoindent', 'ai', 70)
+CheckOptionHasNotBeenAltered('iskeyword', 'isk', 80)
 
-    # the lower the priority, the closer to the right end of the status line the flag is
-    au User MyFlags statusline#hoist('window', '%5p%% ', 10)
-    au User MyFlags statusline#hoist('window', '%9(%.5l,%.3v%)', 20)
-    au User MyFlags statusline#hoist('window', '%{&l:pvw ? "[pvw]" : ""}', 30)
-    au User MyFlags statusline#hoist('window', '%{&l:diff ? "[diff]" : ""}', 40)
-    au User MyFlags statusline#hoist('window', '%{&l:scb ? "[scb]" : ""}', 50)
-    au User MyFlags statusline#hoist('window', '%{&l:spell ? "[spell]" : ""}', 60)
+# the lower the priority, the closer to the right end of the status line the flag is
+au User MyFlags statusline#hoist('window', '%5p%% ', 10)
+au User MyFlags statusline#hoist('window', '%9(%.5l,%.3v%)', 20)
+au User MyFlags statusline#hoist('window', '%{&l:pvw ? "[pvw]" : ""}', 30)
+au User MyFlags statusline#hoist('window', '%{&l:diff ? "[diff]" : ""}', 40)
+au User MyFlags statusline#hoist('window', '%{&l:scb ? "[scb]" : ""}', 50)
+au User MyFlags statusline#hoist('window', '%{&l:spell ? "[spell]" : ""}', 60)
 
-    # TODO: Add a tabpage flag to show whether the focused project is dirty?{{{
-    #
-    # I.e. the project contains non-commited changes.
-    #
-    # If you  try to implement this  flag, cache the  state of the project  in a
-    # buffer variable.
-    # But when  would we update  the cache?   Running an external  shell command
-    # (here `git(1)`) is costly...
-    #}}}
-    au User MyFlags statusline#hoist('tabpage', '%{statusline#tabpagewinnr({tabnr})}', 10)
+# TODO: Add a tabpage flag to show whether the focused project is dirty?{{{
+#
+# I.e. the project contains non-commited changes.
+#
+# If you  try to implement this  flag, cache the  state of the project  in a
+# buffer variable.
+# But when  would we update  the cache?   Running an external  shell command
+# (here `git(1)`) is costly...
+#}}}
+au User MyFlags statusline#hoist('tabpage', '%{statusline#tabpagewinnr({tabnr})}', 10)
 
-    # Purpose:{{{
-    #
-    # We use the tab  line to display some flags telling  us whether some global
-    # options are set; among them is `'paste'`
-    # But the  tab line is not  automatically redrawn when we  (re)set an option
-    # (contrary to the status line).
-    # We want  to be informed *as  soon* *as* `'paste'` (and  possibly others in
-    # the future) is (re)set.
-    #
-    # ---
-    #
-    # We would not  need this autocmd if  the tab line was  redrawn whenever the
-    # status line is; which has been discussed in the past:
-    #
-    #    > My suggestion  (if it  isn't too  expansive) was  to always  refresh the
-    #    > tabline, if the statusline is also refreshed. That seems consistent.
-    #
-    # Source: https://github.com/vim/vim/issues/3770#issuecomment-451972003
-    #
-    # But it has not been implemented for various reasons:
-    #
-    #    > We  could  either also  update  the  tabline,  or add  a  :redrawtabline
-    #    > command.   The last  would  be more  logical, since  it  depends on  the
-    #    > 'tabline' option and has nothing to do with what's in 'statusline'.
-    #
-    # Source: https://github.com/vim/vim/issues/3770#issuecomment-452082906
-    # See also: https://github.com/vim/vim/issues/3770#issuecomment-452095497
-    #}}}
-    # Why the timer?{{{
-    #
-    # To avoid a flag being temporarily displayed  in the tab line when we use a
-    # custom command which temporarily resets a global option.
-    # For example, that may happen with `m)` (`vim-breakdown`).
-    #
-    # The timer  *should* make sure that  the redrawing occurs *after*  a custom
-    # command has finished being processed, and  that it has restored any option
-    # which was temporarily reset.
-    #}}}
-    # A flag for one of these options is briefly displayed in the tab line when I use a custom mapping/command!{{{
-    #
-    # That should not happen thanks to the timer, but if for some reason it does
-    # happen and  it comes  from one  of your plugin  which temporarily  sets an
-    # option, try to prefix `:set` with `:noa`:
-    #
-    #     noa set ve=all
-    #     ^-^
-    #
-    # ---
-    #
-    # As a last resort, consider asking the  tab line to be redrawn whenever the
-    # status line is, or whenever a global option is (re)set.
-    # Open a new github issue, or leave a comment on issue #3770.
-    # Try to include a good and simple MWE to convince the devs that it would be
-    #
-    # Or ask for `state()` to report whether  a function is being processed or a
-    # script is being sourced.
-    # This way, we could write:
-    #
-    #     %{&ve is# "all" && state("f") == "" ? "[ve=all]" : ""}
-    #                               │
-    #                               └ indicate that Vim is busy processing a function
-    #                                 or sourcing a script
-    #
-    # Open a new github issue, or leave a comment on issue #3770.
-    # Try to include a good and simple MWE to convince the devs that it would be
-    # a worthy change.
-    #}}}
-    au OptionSet diffopt,paste,wrapscan timer_start(0, () => execute('redrawt'))
+# Purpose:{{{
+#
+# We use the tab  line to display some flags telling  us whether some global
+# options are set; among them is `'paste'`
+# But the  tab line is not  automatically redrawn when we  (re)set an option
+# (contrary to the status line).
+# We want  to be informed *as  soon* *as* `'paste'` (and  possibly others in
+# the future) is (re)set.
+#
+# ---
+#
+# We would not  need this autocmd if  the tab line was  redrawn whenever the
+# status line is; which has been discussed in the past:
+#
+#    > My suggestion  (if it  isn't too  expansive) was  to always  refresh the
+#    > tabline, if the statusline is also refreshed. That seems consistent.
+#
+# Source: https://github.com/vim/vim/issues/3770#issuecomment-451972003
+#
+# But it has not been implemented for various reasons:
+#
+#    > We  could  either also  update  the  tabline,  or add  a  :redrawtabline
+#    > command.   The last  would  be more  logical, since  it  depends on  the
+#    > 'tabline' option and has nothing to do with what's in 'statusline'.
+#
+# Source: https://github.com/vim/vim/issues/3770#issuecomment-452082906
+# See also: https://github.com/vim/vim/issues/3770#issuecomment-452095497
+#}}}
+# Why the timer?{{{
+#
+# To avoid a flag being temporarily displayed  in the tab line when we use a
+# custom command which temporarily resets a global option.
+# For example, that may happen with `m)` (`vim-breakdown`).
+#
+# The timer  *should* make sure that  the redrawing occurs *after*  a custom
+# command has finished being processed, and  that it has restored any option
+# which was temporarily reset.
+#}}}
+# A flag for one of these options is briefly displayed in the tab line when I use a custom mapping/command!{{{
+#
+# That should not happen thanks to the timer, but if for some reason it does
+# happen and  it comes  from one  of your plugin  which temporarily  sets an
+# option, try to prefix `:set` with `:noa`:
+#
+#     noa set ve=all
+#     ^-^
+#
+# ---
+#
+# As a last resort, consider asking the  tab line to be redrawn whenever the
+# status line is, or whenever a global option is (re)set.
+# Open a new github issue, or leave a comment on issue #3770.
+# Try to include a good and simple MWE to convince the devs that it would be
+#
+# Or ask for `state()` to report whether  a function is being processed or a
+# script is being sourced.
+# This way, we could write:
+#
+#     %{&ve is# "all" && state("f") == "" ? "[ve=all]" : ""}
+#                               │
+#                               └ indicate that Vim is busy processing a function
+#                                 or sourcing a script
+#
+# Open a new github issue, or leave a comment on issue #3770.
+# Try to include a good and simple MWE to convince the devs that it would be
+# a worthy change.
+#}}}
+au OptionSet completeopt,diffopt,paste,wrapscan timer_start(0, () => execute('redrawt'))
 
-    au CmdWinEnter * &l:stl = ' %l'
+au CmdWinEnter * &l:stl = ' %l'
 augroup END
 
 # Commands {{{1
@@ -1048,4 +1075,8 @@ def OpenSourceFile()
     exe 'sp +' .. lnum .. ' ' .. file
     norm! zv
 enddef
+
+# Mapping {{{1
+
+nno =o <cmd>call <sid>FixOptions()<cr>
 
