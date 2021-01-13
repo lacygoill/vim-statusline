@@ -998,7 +998,7 @@ enddef
 
 def DisplayFlags(ascope: string)
     var scopes = ascope == '' ? SCOPES : [ascope]
-    var lines = []
+    var lines: list<string> = []
     for scope in scopes
         # underline each `scope ...` line with a `---` line
         lines += ['', 'scope ' .. scope, substitute('scope ' .. scope, '.', '-', 'g'), '']
