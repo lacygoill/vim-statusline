@@ -261,17 +261,17 @@ var loaded = true
 # Init {{{1
 
 # no more than `x` characters in a tab label
-const TABLABEL_MAXSIZE = 20
+const TABLABEL_MAXSIZE: number = 20
 
 # no more than `x` tab labels on the right/left of the tab label currently focused
-const MAX_TABLABELS = 1
+const MAX_TABLABELS: number = 1
 
 # HG to use to highlight the flags in the tab line
-const HG_TAL_FLAGS = '%#StatusLineTermNC#'
+const HG_TAL_FLAGS: string = '%#StatusLineTermNC#'
 
-const SCOPES = ['global', 'tabpage', 'buffer', 'window']
-var flags_db = {global: [], tabpage: [], buffer: [], window: []}
-var flags = {global: '', tabpage: '', buffer: '', window: ''}
+const SCOPES: list<string> = ['global', 'tabpage', 'buffer', 'window']
+var flags_db: dict<list<any>> = {global: [], tabpage: [], buffer: [], window: []}
+var flags: dict<string> = {global: '', tabpage: '', buffer: '', window: ''}
 
 # Options {{{1
 
@@ -337,25 +337,29 @@ def statusline#main(): string
 enddef
 
 def statusline#tabline(): string #{{{2
-    var s = ''
+    var s: string = ''
     var curtab: number
     var lasttab: number
     [curtab, lasttab] = [tabpagenr(), tabpagenr('$')]
 
     # Shortest Distance From Ends
-    var sdfe = min([curtab - 1, lasttab - curtab])
+    var sdfe: number = min([curtab - 1, lasttab - curtab])
     # How did you get this expression?{{{
     #
     # We don't want to see a label for a tab page which is too far away:
     #
-    #     if abs(curtab - a:n) > max_dist | return '' | endif
-    #                            ^------^
+    #                            v------v
+    #     if abs(curtab - a:n) > max_dist
+    #         return ''
+    #     endif
     #
     # Now, suppose we  want to see 2 labels  on the left and right  of the label
     # currently focused, but not more:
     #
-    #     if abs(curtab - a:n) > 2 | return '' | endif
-    #                            ^
+    #                            v
+    #     if abs(curtab - a:n) > 2
+    #         return ''
+    #     endif
     #
     # If we're in the middle of a big enough tabline, it will look like this:
     #
@@ -449,24 +453,24 @@ def statusline#tabline(): string #{{{2
     #     else
     #         max_dist = x + (x - sdfe)
     #}}}
-    var max_dist = MAX_TABLABELS + (sdfe >= MAX_TABLABELS ? 0 : MAX_TABLABELS - sdfe)
+    var max_dist: number = MAX_TABLABELS + (sdfe >= MAX_TABLABELS ? 0 : MAX_TABLABELS - sdfe)
     # Alternative:{{{
     # for 3 labels:{{{
     #
-    #     var max_dist =
+    #     var max_dist: number =
     #         index([1, lasttab], curtab) != -1 ? 1 + 1
     #         :                                   1 + 0
     #}}}
     # for 5 labels:{{{
     #
-    #     var max_dist =
+    #     var max_dist: number =
     #           index([1, lasttab], curtab) != -1 ? 2 + 2
     #         : index([2, lasttab-1], curtab) != -1 ? 2 + 1
     #         :                                       2 + 0
     #}}}
     # for 7 labels:{{{
     #
-    #     var max_dist =
+    #     var max_dist: number =
     #           index([1, lasttab], curtab) != -1 ? 3 + 3
     #         : index([2, lasttab-1], curtab) != -1 ? 3 + 2
     #         : index([3, lasttab-2], curtab) != -1 ? 3 + 1
@@ -493,7 +497,7 @@ def statusline#tabline(): string #{{{2
             label = string(i)
         else
             label = ' %{statusline#tabpage_label(' .. i .. ',' .. curtab .. ')} '
-            var tab_flags = substitute(flags.tabpage, '\m\C{tabnr}', i, 'g')
+            var tab_flags: string = substitute(flags.tabpage, '\m\C{tabnr}', i, 'g')
             if tab_flags != ''
                 label ..= HG_TAL_FLAGS
                     .. tab_flags
@@ -551,9 +555,9 @@ enddef
 #}}}
 
 def statusline#tabpage_label(n: number, curtab: number): string #{{{2
-    var winnr = tabpagewinnr(n)
-    var bufnr = win_getid(winnr, n)->winbufnr()
-    var bufname = bufname(bufnr)
+    var winnr: number = tabpagewinnr(n)
+    var bufnr: number = win_getid(winnr, n)->winbufnr()
+    var bufname: string = bufname(bufnr)
     if bufname != ''
         bufname = fnamemodify(bufname, ':p')
     endif
@@ -576,7 +580,7 @@ def statusline#tabpage_label(n: number, curtab: number): string #{{{2
     #}}}
     # `b:root_dir` is set by `vim-cwd`
     elseif bufname != '' && (n == curtab || getbufvar(bufnr, 'root_dir', '') != '')
-        var cwd = getcwd(winnr, n)
+        var cwd: string = getcwd(winnr, n)
             ->substitute('^\V' .. escape($HOME, '\') .. '/', '', '')
             ->pathshorten()
         # append a slash to avoid confusion with a buffer name
@@ -617,14 +621,14 @@ def statusline#tabpage_label(n: number, curtab: number): string #{{{2
     if n != curtab
         return label
     endif
-    var len = strlen(label)
-    var cnt = (TABLABEL_MAXSIZE - len) / 2
+    var len: number = strlen(label)
+    var cnt: number = (TABLABEL_MAXSIZE - len) / 2
     return repeat(' ', cnt) .. label .. repeat(' ', cnt + len % 2)
 enddef
 
 def statusline#tabpagewinnr(tabnr: number): string #{{{2
     # return the number of windows inside the tab page `tabnr`
-    var last_winnr = tabpagewinnr(tabnr, '$')
+    var last_winnr: number = tabpagewinnr(tabnr, '$')
     # We are not interested in the number of windows inside:{{{
     #
     #    - the current tab page
@@ -634,7 +638,7 @@ def statusline#tabpagewinnr(tabnr: number): string #{{{2
 enddef
 
 def statusline#tailOfPath(): string #{{{2
-    var tail = fnamemodify(@%, ':t')->strtrans()
+    var tail: string = fnamemodify(@%, ':t')->strtrans()
 
     return &bt == 'terminal'
         ?     '[term]'
@@ -759,16 +763,16 @@ augroup END
 def CpoFlag(): string #{{{2
     return split(&cpo, '\zs')->sort() != cpo_save ? '[cpo]' : ''
 enddef
-au VimEnter * var cpo_save = split(&cpo, '\zs')->sort()
+au VimEnter * var cpo_save: list<string> = split(&cpo, '\zs')->sort()
 
 def CotFlag(): string #{{{2
     return mode(1) == 'n' && split(&cot, ',')->sort() != cot_save ? '[cot]' : ''
 enddef
-au VimEnter * var cot_save = split(&cot, ',')->sort()
+au VimEnter * var cot_save: list<string> = split(&cot, ',')->sort()
 
 def FixOptions() #{{{2
     var options_to_fix: list<string>
-    var did_fix_options = false
+    var did_fix_options: bool = false
     if cpo_save != &cpo->split('\zs')->sort()
         &cpo = cpo_save->join('')
         did_fix_options = true
@@ -997,7 +1001,7 @@ def Complete(_a: any, _l: any, _p: any): string
 enddef
 
 def DisplayFlags(ascope: string)
-    var scopes = ascope == '' ? SCOPES : [ascope]
+    var scopes: list<string> = ascope == '' ? SCOPES : [ascope]
     var lines: list<string> = []
     for scope in scopes
         # underline each `scope ...` line with a `---` line
@@ -1031,10 +1035,12 @@ def DisplayFlags(ascope: string)
     endfor
     exe 'pedit ' .. tempname()
     wincmd P
-    if !&pvw | return | endif
+    if !&pvw
+        return
+    endif
     setl bt=nofile nobl noswf nowrap
     append(0, lines)
-    var range = ':/^---//\d\+$/ ; /\d\+$//^\s*$\|\%$/-'
+    var range: string = ':/^---//\d\+$/ ; /\d\+$//^\s*$\|\%$/-'
     # align priorities in a column
     exe 'sil keepj keepp g/^---/' .. range .. '!column -t -s' .. "\x01"
     # for each scope, sort the flags according to their priority
@@ -1046,18 +1052,18 @@ def DisplayFlags(ascope: string)
     # highlight flags installed from third-party plugins
     matchadd('DiffAdd', '.*[1-9]$', 0)
     sil! fold#adhoc#main()
-    sil! toggle_settings#auto_open_fold(1)
+    sil! toggle_settings#autoOpenFold(v:true)
     nmap <buffer><nowait> q <plug>(my_quit)
     nmap <buffer><nowait> <cr> <cmd>echo <sid>GetSourceFile()<cr>
     nmap <buffer><nowait> <c-w>F <cmd>call <sid>OpenSourceFile()<cr>
 enddef
 
 def GetSourceFile(): string
-    var scope = search('^scope', 'bnW')
+    var scope: string = search('^scope', 'bnW')
         ->getline()
         ->matchstr('^scope \zs\w\+')
-    var priority_under_cursor = getline('.')->matchstr('\d\+$')->str2nr()
-    var source = deepcopy(flags_db[scope])
+    var priority_under_cursor: number = getline('.')->matchstr('\d\+$')->str2nr()
+    var source: string = deepcopy(flags_db[scope])
         ->filter((_, v) => v.priority == priority_under_cursor)
         ->get(0, {})
         ->get('source', '')
@@ -1065,7 +1071,7 @@ def GetSourceFile(): string
 enddef
 
 def OpenSourceFile()
-    var source = GetSourceFile()
+    var source: string = GetSourceFile()
     if empty(source)
         return
     endif
