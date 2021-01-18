@@ -1052,7 +1052,7 @@ def DisplayFlags(ascope: string)
     # highlight flags installed from third-party plugins
     matchadd('DiffAdd', '.*[1-9]$', 0)
     sil! fold#adhoc#main()
-    sil! toggle_settings#autoOpenFold(v:true)
+    sil! toggle_settings#autoOpenFold(true)
     nmap <buffer><nowait> q <plug>(my_quit)
     nmap <buffer><nowait> <cr> <cmd>echo <sid>GetSourceFile()<cr>
     nmap <buffer><nowait> <c-w>F <cmd>call <sid>OpenSourceFile()<cr>
