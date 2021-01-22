@@ -754,7 +754,7 @@ def CheckOptionHasNotBeenAltered(longopt: string, shortopt: string, priority: nu
     endif
     # install a flag whose purpose is to warn us whenever the value of the option is altered
     exe printf('au User MyFlags statusline#hoist('
-        .. '"buffer", ''%%2*%%{&l:%s != get(b:, "orig_%s", &l:%s) ? "[%s+]" : ""}'', %d)',
+        .. '"buffer", ''%%2*%%{&l:%s != get(b:, "orig_%s", &l:%s) ? "[%s]" : ""}'', %d)',
         shortopt, longopt, shortopt, shortopt, priority)
 enddef
 augroup SaveOriginalOptions | au!
