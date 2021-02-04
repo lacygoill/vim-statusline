@@ -458,23 +458,23 @@ def statusline#tabline(): string #{{{2
     # for 3 labels:{{{
     #
     #     var max_dist: number =
-    #         index([1, lasttab], curtab) != -1 ? 1 + 1
-    #         :                                   1 + 0
+    #         index([1, lasttab], curtab) >= 0 ? 1 + 1
+    #         :                                  1 + 0
     #}}}
     # for 5 labels:{{{
     #
     #     var max_dist: number =
-    #           index([1, lasttab], curtab) != -1 ? 2 + 2
-    #         : index([2, lasttab-1], curtab) != -1 ? 2 + 1
-    #         :                                       2 + 0
+    #           index([1, lasttab], curtab) >= 0 ? 2 + 2
+    #         : index([2, lasttab-1], curtab) >= 0 ? 2 + 1
+    #         :                                      2 + 0
     #}}}
     # for 7 labels:{{{
     #
     #     var max_dist: number =
-    #           index([1, lasttab], curtab) != -1 ? 3 + 3
-    #         : index([2, lasttab-1], curtab) != -1 ? 3 + 2
-    #         : index([3, lasttab-2], curtab) != -1 ? 3 + 1
-    #         :                                       3 + 0
+    #           index([1, lasttab], curtab) >= 0 ? 3 + 3
+    #         : index([2, lasttab-1], curtab) >= 0 ? 3 + 2
+    #         : index([3, lasttab-2], curtab) >= 0 ? 3 + 1
+    #         :                                      3 + 0
     #}}}
     #}}}
 
@@ -717,7 +717,7 @@ def CheckOptionHasNotBeenAltered(longopt: string, shortopt: string, priority: nu
         #
         # When we source  a session, `'isk'` is one of the few  options which is not
         # properly restored in a help file.
-        # See `s:restore_these()` in `~/.vim/plugged/vim-session/plugin/session.vim`.
+        # See `RestoreThese()` in `~/.vim/plugged/vim-session/plugin/session.vim`.
         #
         # And out  of those, it's the  only one in  which we are interested  to know
         # whether a script has altered its value.
