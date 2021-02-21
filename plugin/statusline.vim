@@ -328,7 +328,7 @@ def statusline#main(): string
             .. '%{&l:scb ? "[scb]" : ""}'
             .. '%{&l:diff ? "[diff]" : ""}'
             .. '%{&l:pvw ? "[pvw]" : ""}'
-            .. (win_id2win(g:statusline_winid)->getwinvar('&pvw', 0) ? '%4p%% ' : '')
+            .. (win_id2win(g:statusline_winid)->getwinvar('&pvw') ? '%4p%% ' : '')
     else
         return flags.buffer
             .. '%='
@@ -1006,14 +1006,16 @@ def DisplayFlags(ascope: string)
     for scope in scopes
         # underline each `scope ...` line with a `---` line
         lines += ['', 'scope ' .. scope, substitute('scope ' .. scope, '.', '-', 'g'), '']
-        lines += mapnew(flags_db[scope], (_, v) => substitute(
-            v.flag,
-            '\s\+$',
-            '\=repeat("\u2588", submatch(0)->strlen())',
-            ''
-            ) .. "\x01" .. v.priority
-        )
-        # `substitute()` makes visible a trailing whitespace in a flag
+        var Rep: func = (m: list<string>): string =>
+            repeat("\u2588", m[0]->strlen())
+        lines += flags_db[scope]
+            ->mapnew((_, v: dict<any>): string => substitute(
+                v.flag,
+                '\s\+$',
+                # make sure a trailing whitespace in a flag is visible
+                Rep,
+                ''
+                ) .. "\x01" .. v.priority)
 
         # Purpose:{{{
         #
@@ -1063,8 +1065,9 @@ def GetSourceFile(): string
         ->getline()
         ->matchstr('^scope \zs\w\+')
     var priority_under_cursor: number = getline('.')->matchstr('\d\+$')->str2nr()
-    var source: string = deepcopy(flags_db[scope])
-        ->filter((_, v) => v.priority == priority_under_cursor)
+    var source: string = flags_db[scope]
+        ->deepcopy()
+        ->filter((_, v: dict<any>): bool => v.priority == priority_under_cursor)
         ->get(0, {})
         ->get('source', '')
     return source
