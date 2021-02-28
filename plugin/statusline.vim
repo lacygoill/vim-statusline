@@ -496,7 +496,7 @@ def statusline#tabline(): string #{{{2
         if abs(curtab - i) > max_dist
             label = string(i)
         else
-            label = ' %{statusline#tabpage_label(' .. i .. ',' .. curtab .. ')} '
+            label = ' %{statusline#tabpageLabel(' .. i .. ',' .. curtab .. ')} '
             var tab_flags: string = substitute(flags.tabpage, '\m\C{tabnr}', i, 'g')
             if tab_flags != ''
                 label ..= HG_TAL_FLAGS
@@ -554,7 +554,7 @@ enddef
 #    └─────────────────────────┴─────────────┘
 #}}}
 
-def statusline#tabpage_label(n: number, curtab: number): string #{{{2
+def statusline#tabpageLabel(n: number, curtab: number): string #{{{2
     var winnr: number = tabpagewinnr(n)
     var bufnr: number = win_getid(winnr, n)->winbufnr()
     var bufname: string = bufname(bufnr)
@@ -1055,7 +1055,7 @@ def DisplayFlags(arg_scope: string)
     # highlight flags installed from third-party plugins
     matchadd('DiffAdd', '.*[1-9]$', 0)
     sil! fold#adhoc#main()
-    sil! toggle_settings#autoOpenFold(true)
+    sil! toggleSettings#autoOpenFold(true)
     nmap <buffer><nowait> q <plug>(my_quit)
     nmap <buffer><nowait> <cr> <cmd>echo <sid>GetSourceFile()<cr>
     nmap <buffer><nowait> <c-w>F <cmd>call <sid>OpenSourceFile()<cr>
