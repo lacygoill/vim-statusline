@@ -766,7 +766,8 @@ enddef
 au VimEnter * var cpo_save: list<string> = split(&cpo, '\zs')->sort()
 
 def CotFlag(): string #{{{2
-    return mode(1) == 'n' && split(&cot, ',')->sort() != cot_save ? '[cot]' : ''
+    return mode(true) == 'n'
+        && split(&cot, ',')->sort() != cot_save ? '[cot]' : ''
 enddef
 au VimEnter * var cot_save: list<string> = split(&cot, ',')->sort()
 
@@ -996,13 +997,13 @@ augroup END
 
 com -bar -nargs=? -range=% -complete=custom,Complete StlFlags DisplayFlags(<q-args>)
 
-def Complete(_a: any, _l: any, _p: any): string
+def Complete(...l: any): string
     return join(SCOPES, "\n")
 enddef
 
-def DisplayFlags(ascope: string)
-    var scopes: list<string> = ascope == '' ? SCOPES : [ascope]
-    var lines: list<string> = []
+def DisplayFlags(arg_scope: string)
+    var scopes: list<string> = arg_scope == '' ? SCOPES : [arg_scope]
+    var lines: list<string>
     for scope in scopes
         # underline each `scope ...` line with a `---` line
         lines += ['', 'scope ' .. scope, substitute('scope ' .. scope, '.', '-', 'g'), '']
