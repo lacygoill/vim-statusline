@@ -315,7 +315,7 @@ fu s:BuildFlags() abort
         if scope is# 'global' || scope is# 'window'
             call reverse(s:flags[scope])
         endif
-       let s:flags[scope] = map(s:flags[scope], {_, v -> v.flag})->join('')
+       let s:flags[scope] = s:flags[scope]->map({_, v -> v.flag})->join('')
     endfor
     lockvar! s:flags
 endfu
@@ -497,7 +497,7 @@ def statusline#tabline(): string #{{{2
             label = string(i)
         else
             label = ' %{statusline#tabpageLabel(' .. i .. ',' .. curtab .. ')} '
-            var tab_flags: string = substitute(flags.tabpage, '\m\C{tabnr}', i, 'g')
+            var tab_flags: string = flags.tabpage->substitute('\C{tabnr}', i, 'g')
             if tab_flags != ''
                 label ..= HG_TAL_FLAGS
                     .. tab_flags
@@ -786,6 +786,10 @@ def FixOptions() #{{{2
         &l:isk = b:orig_iskeyword
         did_fix_options = true
     endif
+    if get(b:, 'orig_autoindent', &l:ai) != &l:ai
+        &l:ai = b:orig_autoindent
+        did_fix_options = true
+    endif
     if !did_fix_options
         echo 'could not find any option which needs to be fixed'
     endif
@@ -1006,17 +1010,14 @@ def DisplayFlags(arg_scope: string)
     var lines: list<string>
     for scope in scopes
         # underline each `scope ...` line with a `---` line
-        lines += ['', 'scope ' .. scope, substitute('scope ' .. scope, '.', '-', 'g'), '']
+        lines += ['', 'scope ' .. scope, ('scope ' .. scope)->substitute('.', '-', 'g'), '']
         var Rep: func = (m: list<string>): string =>
             repeat("\u2588", m[0]->strlen())
         lines += flags_db[scope]
-            ->mapnew((_, v: dict<any>): string => substitute(
-                v.flag,
-                '\s\+$',
-                # make sure a trailing whitespace in a flag is visible
-                Rep,
-                ''
-                ) .. "\x01" .. v.priority)
+            ->mapnew((_, v: dict<any>): string =>
+                        v.flag
+                        # make sure a trailing whitespace in a flag is visible
+                        ->substitute('\s\+$', Rep, '') .. "\x01" .. v.priority)
 
         # Purpose:{{{
         #
