@@ -621,7 +621,7 @@ def statusline#tabpageLabel(n: number, curtab: number): string #{{{2
     if n != curtab
         return label
     endif
-    var len: number = strlen(label)
+    var len: number = strchars(label, true)
     var cnt: number = (TABLABEL_MAXSIZE - len) / 2
     return repeat(' ', cnt) .. label .. repeat(' ', cnt + len % 2)
 enddef
@@ -1012,7 +1012,7 @@ def DisplayFlags(arg_scope: string)
         # underline each `scope ...` line with a `---` line
         lines += ['', 'scope ' .. scope, ('scope ' .. scope)->substitute('.', '-', 'g'), '']
         var Rep: func = (m: list<string>): string =>
-            repeat("\u2588", m[0]->strlen())
+            repeat("\u2588", m[0]->strchars(true))
         lines += flags_db[scope]
             ->mapnew((_, v: dict<any>): string =>
                         v.flag
